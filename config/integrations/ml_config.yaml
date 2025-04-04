@@ -1,0 +1,10 @@
+# ML Configuration
+
+ml:
+  sources:
+    default:
+      base_url: "http://localhost:5000/api/v1/ml"
+      models:
+        churn:
+          endpoint: "/predict/churn"
+          timeout: 10

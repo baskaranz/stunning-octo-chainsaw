@@ -1,0 +1,15 @@
+# API Sources Configuration
+
+api:
+  sources:
+    default:
+      base_url: "http://localhost:5000"
+      timeout: 10
+      headers:
+        Content-Type: "application/json"
+        
+    credit_api:
+      base_url: "http://localhost:5000/api/v1/credit"
+      timeout: 5
+      headers:
+        Content-Type: "application/json"

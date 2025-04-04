@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    environment:
+      - APP_ENV=development
+    command: python main.py
+    networks:
+      - orchestrator-network
+
+  # Uncomment if you want to include a database service
+  # db:
+  #   image: postgres:14
+  #   environment:
+  #     - POSTGRES_USER=postgres
+  #     - POSTGRES_PASSWORD=postgres
+  #     - POSTGRES_DB=orchestrator
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - postgres-data:/var/lib/postgresql/data
+  #   networks:
+  #     - orchestrator-network
+
+networks:
+  orchestrator-network:
+    driver: bridge
+
+# Uncomment if you want to include a database service
+# volumes:
+#   postgres-data:

@@ -1,0 +1,39 @@
+# Feast Feature Store Configuration
+
+default:
+  repo_path: "./feature_repo"
+  project: "default"
+
+sources:
+  default:
+    repo_path: "./feature_repo"
+    project: "default"
+    default_customer_features:
+      - "default/customer_features:customer_lifetime_value"
+      - "default/customer_features:days_since_last_purchase"
+      - "default/customer_features:purchase_frequency"
+      - "default/customer_features:total_purchases"
+      - "default/customer_features:average_order_value"
+    description: "Default Feast feature store"
+    enabled: true
+  
+  # Example additional feature store
+  # marketing:
+  #   repo_path: "./marketing_feature_repo"
+  #   project: "marketing"
+  #   default_customer_features:
+  #     - "marketing/customer_segments:segment_id"
+  #     - "marketing/customer_engagement:email_open_rate"
+  #     - "marketing/customer_engagement:click_through_rate"
+  #   description: "Marketing feature store"
+  #   enabled: true
+
+# Feast Configuration
+
+feast:
+  sources:
+    default:
+      url: "http://localhost:5000/api/v1/feast"
+      registry: "feast_registry"
+      project: "default"
+      timeout: 10
