@@ -66,10 +66,15 @@ For a more realistic setup with actual service components:
    python examples/loan_prediction/simple_ml_server.py 5001
    ```
 
-3. In a new terminal, start the orchestrator API service:
+3. In a new terminal, start the orchestrator API service with the loan prediction example enabled:
    ```bash
-   ORCHESTRATOR_CONFIG_PATH=examples/loan_prediction/config python main.py
+   python main.py --with-loan-prediction
    ```
+   
+   This flag:
+   - Loads the loan prediction example controllers and routes
+   - Sets up the correct configurations from examples/loan_prediction/config
+   - Configures the database and ML model clients
 
 4. In a new terminal, run the client to test:
    ```bash

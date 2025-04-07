@@ -20,21 +20,21 @@ class DatabaseClient:
         self.engines = {}
         self.sessions = {}
         
-        # Direct initialization for SQLite database
+        # Initialize database connection
         try:
-            # Get the absolute path to the database file
+            # Use default SQLite database
             db_path = os.path.join(os.getcwd(), "customer360.db")
             logger.info(f"Using SQLite database at: {db_path}")
-            
-            # Create SQLite engine directly
             connection_string = f"sqlite:///{db_path}"
+            
+            # Create SQLite engine with the appropriate connection string
             engine = sqlalchemy.create_engine(
                 connection_string,
                 connect_args={"check_same_thread": False}
             )
             self.engines["default"] = engine
         except Exception as e:
-            logger.error(f"Error creating SQLite engine: {str(e)}")
+            logger.error(f"Error creating database engine: {str(e)}")
     
     def _get_engine(self, source_id: str = "default"):
         """Get a database engine for the specified source ID."""
@@ -317,3 +317,6 @@ class DatabaseClient:
             return result[0]
         except Exception as e:
             raise DatabaseError(f"Error retrieving churn prediction: {str(e)}", source_id)
+    
+    # Example-specific methods like get_applicant_features are defined in
+    # the respective example directories (e.g., examples/loan_prediction/database_extensions.py)

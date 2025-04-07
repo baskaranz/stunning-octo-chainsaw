@@ -46,9 +46,8 @@ class ModelClient:
         if not endpoint:
             raise ModelError(f"Endpoint not defined for model '{model_id}' in ML service '{source_id}'", source_id)
         
-        # Prepare request data
+        # Prepare request data - simpler format for the loan prediction example
         request_data = {
-            "model_id": model_id,
             "features": features
         }
         
@@ -85,3 +84,6 @@ class ModelClient:
         except Exception as e:
             logger.error(f"Error predicting customer churn: {str(e)}")
             raise ModelError(f"Failed to predict customer churn: {str(e)}", source_id)
+    
+    # Example-specific methods like predict_loan_approval are defined in
+    # the respective example directories (e.g., examples/loan_prediction/ml_extensions.py)
