@@ -22,7 +22,7 @@ class DatabaseClient:
         
         # Initialize database connection
         try:
-            # Use default SQLite database
+            # Use default SQLite database from the project's root directory
             db_path = os.path.join(os.getcwd(), "customer360.db")
             logger.info(f"Using SQLite database at: {db_path}")
             connection_string = f"sqlite:///{db_path}"

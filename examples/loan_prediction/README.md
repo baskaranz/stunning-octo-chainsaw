@@ -13,10 +13,12 @@ The loan prediction example demonstrates a common real-world scenario: integrati
 ## Components
 
 ### Database Layer
-- SQLite database containing:
+- SQLite database (`examples/loan_prediction/loan_prediction.db`) containing:
   - `applicants` table: Basic personal information
   - `financial_data` table: Income, credit scores, loan amounts
   - `loan_history` table: Previous applications and repayment history
+
+> **Note:** All example-specific files, including the database, are kept within the `examples/loan_prediction/` directory to keep the main codebase clean.
 
 ### ML Service Layer
 - Mock HTTP server simulating a loan approval model
