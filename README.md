@@ -144,17 +144,22 @@ The Orchestrator API Service supports configuring different types of endpoints t
          purchase_frequency: "$features.purchase_frequency"
    ```
 
-For more detailed configuration examples, see the [Examples README](examples/README.md).
+For more detailed configuration examples, see the [Example README](example/README.md).
 
 ## Examples
 
-The repository includes the following examples:
+The repository includes a generic orchestrator example that demonstrates:
 
-1. **Customer 360**: Demonstrates combining data from multiple sources to create a comprehensive customer view.
+1. **Model Scoring**: Shows integration between databases and ML services for different model types:
+   - Credit risk scoring model
+   - Product recommendation model
 
-2. **Loan Prediction**: Shows integration between a database and ML service for automated lending decisions. See the [Loan Prediction Example](examples/loan_prediction/README.md) for a complete guide.
+2. **Multi-Source Data Flow**: Demonstrates retrieving and combining data from:
+   - Database tables
+   - Request parameters
+   - External APIs
 
-For more detailed examples, see the [Examples README](examples/README.md).
+For more details, see the [Example README](example/README.md).
 
 ## API Documentation
 

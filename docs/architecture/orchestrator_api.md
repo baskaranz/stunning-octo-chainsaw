@@ -132,13 +132,13 @@ curl "http://localhost:8000/orchestrator/model_scoring"
 
 ```bash
 # Score with database lookup
-python examples/model_scoring_client.py churn_pred --id cust_1001
+python example/model_scoring_client.py credit-risk --id cust_1001
 
 # Score with direct features
-python examples/model_scoring_client.py loan_pred --features "loan_amount=25000,loan_term=36,credit_score=720"
+python example/model_scoring_client.py loan_pred --features "loan_amount=25000,loan_term=36,credit_score=720"
 
 # Score with both lookup and additional parameters
-python examples/model_scoring_client.py churn_pred --id cust_1002 --params "tickets=3,nps=7"
+python example/model_scoring_client.py product-recommender --id cust_1002 --context "current_page=electronics,recent_searches=laptop|headphones"
 ```
 
 ## Adding New Models

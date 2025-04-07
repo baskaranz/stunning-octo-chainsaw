@@ -465,4 +465,4 @@ Key features:
 
 ## Complete Example
 
-See the [Customer 360 Example](../../examples/customer_360/README.md) for a complete working example of endpoint configuration.
+See the [Generic Orchestrator Example](../../example/README.md) for a complete working example of endpoint configuration.

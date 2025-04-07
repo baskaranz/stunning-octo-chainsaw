@@ -1,9 +1,9 @@
-# Database Configuration for Loan Prediction Example
+# Database Configuration
 
 database:
   sources:
     default:
-      connection_string: "sqlite:///examples/loan_prediction/loan_prediction.db"
+      connection_string: "sqlite:///customer360.db"
       pool_size: 5
       max_overflow: 10
       pool_timeout: 30
