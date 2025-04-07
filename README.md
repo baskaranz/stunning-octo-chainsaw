@@ -67,9 +67,94 @@ Configuration files are located in the `config/` directory:
 - `domains/`: Domain-specific endpoint configurations
 - `integrations/`: External system configurations
 
+### Endpoint Configuration
+
+The Orchestrator API Service supports configuring different types of endpoints through YAML configuration files. You can define endpoints that:
+
+1. **Expose Database Data**: Query database tables and return results
+   ```yaml
+   endpoints:
+     get_customer:
+       description: "Get customer details from database"
+       endpoint_type: "database"
+       data_sources:
+         - name: customer_data
+           type: database
+           operation: get_customer
+           params:
+             customer_id: "$request.customer_id"
+       primary_source: customer_data
+       response_mapping: null  # Use database results directly
+   ```
+
+2. **Expose External API Data**: Call external APIs and return their responses
+   ```yaml
+   endpoints:
+     get_credit_score:
+       description: "Get credit score from external API"
+       endpoint_type: "api"
+       data_sources:
+         - name: credit_data
+           type: api
+           operation: get_customer_credit
+           params:
+             customer_id: "$request.customer_id"
+       primary_source: credit_data
+       response_mapping: null  # Use API response directly
+   ```
+
+3. **Expose Feature Store Data**: Fetch and return data from Feast feature store
+   ```yaml
+   endpoints:
+     get_customer_features:
+       description: "Get customer features from Feast"
+       endpoint_type: "feast"
+       data_sources:
+         - name: customer_features
+           type: feast
+           operation: get_customer_features
+           params:
+             customer_id: "$request.customer_id"
+       primary_source: customer_features
+       response_mapping: null  # Use feature store results directly
+   ```
+
+4. **Combine Multiple Data Sources**: Orchestrate data from multiple sources
+   ```yaml
+   endpoints:
+     get_customer_360:
+       description: "Get comprehensive customer view"
+       endpoint_type: "composite"
+       data_sources:
+         - name: profile
+           type: database
+           operation: get_customer
+           params:
+             customer_id: "$request.customer_id"
+         - name: features
+           type: feast
+           operation: get_customer_features
+           params:
+             customer_id: "$request.customer_id"
+       response_mapping:
+         id: "$profile.customer_id"
+         name: "$profile.name"
+         email: "$profile.email"
+         lifetime_value: "$features.customer_lifetime_value"
+         purchase_frequency: "$features.purchase_frequency"
+   ```
+
+For more detailed configuration examples, see the [Examples README](examples/README.md).
+
 ## Examples
 
-For detailed examples of how to use the Orchestrator API Service, please see the [Examples README](examples/README.md).
+The repository includes the following examples:
+
+1. **Customer 360**: Demonstrates combining data from multiple sources to create a comprehensive customer view.
+
+2. **Loan Prediction**: Shows integration between a database and ML service for automated lending decisions. See the [Loan Prediction Example](examples/loan_prediction/README.md) for a complete guide.
+
+For more detailed examples, see the [Examples README](examples/README.md).
 
 ## API Documentation
 
