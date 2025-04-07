@@ -12,6 +12,31 @@ class DataSourceConfigManager:
     def __init__(self, config_loader: ConfigLoader = Depends()):
         self.config_loader = config_loader
         self.source_cache = {}
+        
+        # Hardcoded loan model configuration for the loan prediction example
+        self.source_cache["ml.loan_model"] = {
+            "base_url": "http://localhost:5001",
+            "models": {
+                "loan_approval": {
+                    "endpoint": "/",  # Use root URL for the simplified mock service
+                    "timeout": 30,
+                    "headers": {
+                        "Content-Type": "application/json"
+                    }
+                }
+            }
+        }
+        
+        # Add API configuration for the loan_model source
+        self.source_cache["api.loan_model"] = {
+            "base_url": "http://localhost:5001",
+            "timeout": 30,
+            "headers": {
+                "Content-Type": "application/json"
+            }
+        }
+        
+        logger.info("Initialized with hardcoded loan_model configurations for ML and API (port 5000)")
     
     def get_data_source_config(self, source_type: str, source_id: str) -> Optional[Dict[str, Any]]:
         """Get the configuration for a specific data source.

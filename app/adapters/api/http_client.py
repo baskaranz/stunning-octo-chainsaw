@@ -36,7 +36,17 @@ class HttpClient:
             headers = config.get("headers", {})
             timeout = config.get("timeout", 30.0)
             
-            client = httpx.AsyncClient(base_url=base_url, headers=headers, timeout=timeout)
+            # Debug information
+            logger.info(f"Creating HTTP client for {source_id} with base_url: {base_url}")
+            
+            # Verify is set to False to accept self-signed certificates
+            # This is for development/example purposes only, not recommended for production
+            client = httpx.AsyncClient(
+                base_url=base_url, 
+                headers=headers, 
+                timeout=timeout,
+                follow_redirects=True
+            )
             self.clients[source_id] = client
             return client
         except Exception as e:

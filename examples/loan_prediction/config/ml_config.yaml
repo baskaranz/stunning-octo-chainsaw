@@ -1,0 +1,12 @@
+# ML Service Configuration for Loan Prediction Example
+
+ml:
+  sources:
+    loan_model:
+      base_url: "http://localhost:5000/api/v1/ml"
+      models:
+        loan_approval:
+          endpoint: "/predict/loan_approval"
+          timeout: 10
+          headers:
+            Content-Type: "application/json"
