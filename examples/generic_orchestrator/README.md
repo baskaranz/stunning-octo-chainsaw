@@ -81,9 +81,9 @@ If you prefer to run each component separately:
    python examples/generic_orchestrator/mock_ml_services.py
    ```
 
-3. Start the orchestrator API with the example configurations:
+3. Start the orchestrator API:
    ```bash
-   python main.py --with-generic-orchestrator
+   python main.py
    ```
 
 4. Call the API endpoints with curl:

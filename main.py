@@ -26,14 +26,11 @@ if os.environ.get('CHURN_PREDICTION_EXAMPLE', '').lower() in ('true', '1', 'yes'
     except ImportError as e:
         print(f"⚠ Failed to load churn prediction example: {e}")
 
-# Check if we should include the generic orchestrator example
+# Generic orchestrator example doesn't need extensions since it uses configuration only
+# Just print a notice if the flag is enabled
 if os.environ.get('GENERIC_ORCHESTRATOR_EXAMPLE', '').lower() in ('true', '1', 'yes'):
-    try:
-        from examples.generic_orchestrator.extend_app import extend_app
-        app = extend_app(app)
-        print("✓ Generic Orchestrator example functionality enabled")
-    except ImportError as e:
-        print(f"⚠ Failed to load generic orchestrator example: {e}")
+    print("✓ Generic Orchestrator example functionality enabled")
+    print("  Note: This example uses configuration-only approach, no code extensions needed")
 
 if __name__ == "__main__":
     # Parse command line arguments
