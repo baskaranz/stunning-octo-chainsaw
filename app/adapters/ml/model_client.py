@@ -67,23 +67,5 @@ class ModelClient:
             logger.error(f"Error making prediction with model '{model_id}' in source '{source_id}': {str(e)}")
             raise ModelError(f"Failed to get prediction: {str(e)}", source_id)
     
-    # Example operations for the customer domain
-    
-    async def predict_customer_churn(self, customer_features: Dict[str, Any], source_id: str = "default") -> Dict[str, Any]:
-        """Predict customer churn probability.
-        
-        Args:
-            customer_features: Customer feature values
-            source_id: The ML service source ID
-            
-        Returns:
-            Churn prediction result
-        """
-        try:
-            return await self.predict("customer_churn", customer_features, source_id)
-        except Exception as e:
-            logger.error(f"Error predicting customer churn: {str(e)}")
-            raise ModelError(f"Failed to predict customer churn: {str(e)}", source_id)
-    
-    # Example-specific methods like predict_loan_approval are defined in
-    # the respective example directories (e.g., examples/loan_prediction/ml_extensions.py)
+    # Additional domain-specific methods can be added through extension mechanisms
+    # For example, the generic orchestrator example uses ml_extensions.py

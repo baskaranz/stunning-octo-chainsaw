@@ -1,0 +1,24 @@
+2025-04-07 11:00:20,301 - app - INFO - Using configuration path: examples/loan_prediction/config
+INFO:     Will watch for changes in these directories: ['/Users/baskaran/Work/labs/jaeger-bb/orchestrator-api-service']
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [47086] using StatReload
+2025-04-07 11:00:20,548 - app - INFO - Using configuration path: examples/loan_prediction/config
+2025-04-07 11:00:20,559 - app - INFO - Using configuration path: examples/loan_prediction/config
+INFO:     Started server process [47090]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+2025-04-07 11:00:32,010 - app.config.data_source_config_manager - INFO - Initialized with hardcoded loan_model configurations for ML and API (port 5000)
+2025-04-07 11:00:32,010 - app.adapters.database.database_client - INFO - Using loan prediction database at: /Users/baskaran/Work/labs/jaeger-bb/orchestrator-api-service/examples/loan_prediction/loan_prediction.db
+2025-04-07 11:00:32,015 - app.adapters.feast.feast_client - WARNING - Feast module not found. Feature store operations will not be available.
+2025-04-07 11:00:32,018 - app.orchestration.execution_tracker - INFO - Started execution 988c3dcf-0744-4c5f-9d33-8f5fa8111045 for loan_prediction.predict
+2025-04-07 11:00:32,018 - app.adapters.ml.model_client - INFO - Making prediction request for model 'loan_approval' in source 'loan_model'
+2025-04-07 11:00:32,018 - app.adapters.api.http_client - INFO - Creating HTTP client for loan_model with base_url: http://localhost:5001
+2025-04-07 11:00:32,028 - app.adapters.api.http_client - INFO - Making POST request to / on API source 'loan_model'
+2025-04-07 11:00:32,030 - httpx - INFO - HTTP Request: POST http://localhost:5001/ "HTTP/1.0 200 OK"
+2025-04-07 11:00:32,030 - app.orchestration.execution_tracker - INFO - Execution 988c3dcf-0744-4c5f-9d33-8f5fa8111045 completed successfully
+INFO:     127.0.0.1:64390 - "GET /api/loan-prediction/predict/app_1001 HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [47090]
+INFO:     Stopping reloader process [47086]

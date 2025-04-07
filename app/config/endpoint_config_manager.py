@@ -1,10 +1,13 @@
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List
 from fastapi import Depends
 
 from app.config.config_loader import ConfigLoader
 from app.common.utils.logging_utils import get_logger
 
 logger = get_logger(__name__)
+
+# Valid endpoint types
+VALID_ENDPOINT_TYPES = ["database", "api", "feast", "ml", "composite"]
 
 class EndpointConfigManager:
     """Manages endpoint configurations for API operations."""
@@ -42,9 +45,84 @@ class EndpointConfigManager:
             logger.warning(f"No configuration found for operation '{operation}' in domain '{domain}'")
             return None
         
+        # Validate endpoint type
+        self._validate_endpoint_config(endpoint_config, domain, operation)
+        
         # Cache the result
         self.endpoint_cache[cache_key] = endpoint_config
         return endpoint_config
+    
+    def _validate_endpoint_config(self, endpoint_config: Dict[str, Any], domain: str, operation: str) -> None:
+        """Validate the endpoint configuration.
+        
+        Args:
+            endpoint_config: The endpoint configuration to validate
+            domain: The domain name (for logging)
+            operation: The operation name (for logging)
+        """
+        # Validate endpoint type
+        endpoint_type = endpoint_config.get("endpoint_type")
+        if not endpoint_type:
+            # For backward compatibility, infer the endpoint type from data sources
+            data_sources = endpoint_config.get("data_sources", [])
+            if len(data_sources) > 1:
+                endpoint_type = "composite"
+                endpoint_config["endpoint_type"] = endpoint_type
+            elif len(data_sources) == 1:
+                endpoint_type = data_sources[0].get("type")
+                endpoint_config["endpoint_type"] = endpoint_type
+            else:
+                logger.warning(f"No data sources found for endpoint '{operation}' in domain '{domain}'")
+                endpoint_type = "unknown"
+                endpoint_config["endpoint_type"] = endpoint_type
+        
+        # Check if the endpoint type is valid
+        if endpoint_type not in VALID_ENDPOINT_TYPES:
+            logger.warning(
+                f"Invalid endpoint type '{endpoint_type}' for operation '{operation}' in domain '{domain}'. "
+                f"Valid types are: {', '.join(VALID_ENDPOINT_TYPES)}"
+            )
+        
+        # Ensure data sources are consistent with the endpoint type (except for composite)
+        if endpoint_type != "composite":
+            for data_source in endpoint_config.get("data_sources", []):
+                source_type = data_source.get("type")
+                if source_type != endpoint_type:
+                    logger.warning(
+                        f"Data source type '{source_type}' does not match endpoint type '{endpoint_type}' "
+                        f"for operation '{operation}' in domain '{domain}'"
+                    )
+    
+    def get_endpoint_by_type(self, domain: str, endpoint_type: str) -> Dict[str, Dict[str, Any]]:
+        """Get all endpoints of a specific type for a domain.
+        
+        Args:
+            domain: The business domain
+            endpoint_type: The type of endpoint to filter by
+            
+        Returns:
+            A dictionary mapping operation names to endpoint configurations
+        """
+        all_endpoints = self.get_all_endpoints(domain)
+        filtered_endpoints = {}
+        
+        for operation, config in all_endpoints.items():
+            # Get or infer the endpoint type
+            config_type = config.get("endpoint_type")
+            if not config_type:
+                data_sources = config.get("data_sources", [])
+                if len(data_sources) > 1:
+                    config_type = "composite"
+                elif len(data_sources) == 1:
+                    config_type = data_sources[0].get("type")
+                else:
+                    config_type = "unknown"
+            
+            # Add to filtered results if type matches
+            if config_type == endpoint_type:
+                filtered_endpoints[operation] = config
+        
+        return filtered_endpoints
     
     def get_all_endpoints(self, domain: str) -> Dict[str, Any]:
         """Get all endpoint configurations for a domain.

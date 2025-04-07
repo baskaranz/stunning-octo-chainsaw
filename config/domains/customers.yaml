@@ -7,6 +7,7 @@ description: "Customer management operations"
 endpoints:
   list:
     description: "List customers with pagination"
+    endpoint_type: "database"  # Explicitly defines this as a database-sourced endpoint
     data_sources:
       - name: customers_list
         type: database
@@ -19,6 +20,7 @@ endpoints:
   
   get:
     description: "Get a single customer by ID"
+    endpoint_type: "database"  # Explicitly defines this as a database-sourced endpoint
     data_sources:
       - name: customer_data
         type: database
@@ -30,6 +32,7 @@ endpoints:
   
   create:
     description: "Create a new customer"
+    endpoint_type: "database"  # Explicitly defines this as a database-sourced endpoint
     data_sources:
       - name: new_customer
         type: database
@@ -41,6 +44,7 @@ endpoints:
   
   update:
     description: "Update an existing customer"
+    endpoint_type: "database"  # Explicitly defines this as a database-sourced endpoint
     data_sources:
       - name: updated_customer
         type: database
@@ -54,6 +58,7 @@ endpoints:
   # Example of an endpoint that combines data from multiple sources
   get_enriched:
     description: "Get customer data enriched with features and predictions"
+    endpoint_type: "composite"  # Explicitly defines this as a composite endpoint with multiple source types
     data_sources:
       - name: customer_data
         type: database

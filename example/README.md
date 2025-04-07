@@ -55,7 +55,7 @@ The generic orchestrator API provides a unified interface for model scoring that
 The simplest way to run the example is with the all-in-one script:
 
 ```bash
-python examples/generic_orchestrator/run_example.py
+python example/run_example.py
 ```
 
 This script will:
@@ -73,12 +73,13 @@ If you prefer to run each component separately:
 
 1. Set up the database:
    ```bash
-   python examples/generic_orchestrator/setup_database.py
+   # Database setup is now handled in run_example.py
+   python example/run_example.py --setup-only
    ```
 
 2. Start the mock ML services:
    ```bash
-   python examples/generic_orchestrator/mock_ml_services.py
+   python example/mock_ml_services.py
    ```
 
 3. Start the orchestrator API:
@@ -100,10 +101,10 @@ If you prefer to run each component separately:
 5. Or use the provided client script:
    ```bash
    # Credit risk score for a customer
-   python examples/generic_orchestrator/api_client.py credit-risk --id cust_1001
+   python example/api_client.py credit-risk --id cust_1001
    
    # Product recommendations with both ID and context
-   python examples/generic_orchestrator/api_client.py product-recommender --id cust_1002 \
+   python example/api_client.py product-recommender --id cust_1002 \
      --context "current_page=electronics,recent_searches=laptop|headphones"
    ```
 
@@ -202,11 +203,12 @@ Example response:
 - `mock_ml_services.py`: Simulates the ML models
 - `database_extensions.py`: Database client extensions for the example
 - `api_client.py`: Client-side example of API usage
+- `model_scoring_client.py`: Specialized client for model scoring endpoints
 
 ### Configuration Files
 - `config/domains/model_scoring_credit_risk.yaml`: Credit risk model configuration
 - `config/domains/model_scoring_product_recommender.yaml`: Product recommendation configuration
-- `config/integrations/ml_generic_example.yaml`: ML service connection settings
+- `config/integrations/ml.yaml`: ML service connection settings
 
 ## How It Works
 

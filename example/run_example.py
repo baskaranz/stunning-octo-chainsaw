@@ -303,9 +303,9 @@ def print_usage_examples():
     
     print("\n2. Using the API client:")
     print("   # Credit risk assessment")
-    print("   python examples/generic_orchestrator/api_client.py credit-risk --id cust_1001")
+    print("   python example/api_client.py credit-risk --id cust_1001")
     print("\n   # Product recommendations")
-    print("   python examples/generic_orchestrator/api_client.py product-recommender --id cust_1002 \\")
+    print("   python example/api_client.py product-recommender --id cust_1002 \\")
     print("     --context current_page=electronics")
     
     print("\n3. Try with different customers:")

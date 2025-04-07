@@ -297,26 +297,5 @@ class DatabaseClient:
         except Exception as e:
             raise DatabaseError(f"Error retrieving recent orders: {str(e)}", source_id)
     
-    async def get_customer_churn_prediction(self, customer_id: str, source_id: str = "default") -> Optional[Dict[str, Any]]:
-        """Get the churn prediction for a customer.
-        
-        Args:
-            customer_id: The customer ID
-            source_id: The database source ID
-            
-        Returns:
-            The churn prediction data or None if not found
-        """
-        query = "SELECT * FROM churn_predictions WHERE customer_id = :customer_id ORDER BY created_at DESC LIMIT 1"
-        params = {"customer_id": customer_id}
-        
-        try:
-            result = await self.query(query, params, source_id)
-            if not result:
-                return None
-            return result[0]
-        except Exception as e:
-            raise DatabaseError(f"Error retrieving churn prediction: {str(e)}", source_id)
-    
-    # Example-specific methods like get_applicant_features are defined in
-    # the respective example directories (e.g., examples/loan_prediction/database_extensions.py)
+    # Additional domain-specific methods can be added through extension mechanisms
+    # For example, the generic orchestrator example uses database_extensions.py
