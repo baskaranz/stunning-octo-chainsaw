@@ -50,6 +50,27 @@ The generic orchestrator API provides a unified interface for model scoring that
 
 ## Running the Example
 
+### Option 1: All-in-One Setup (Recommended)
+
+The simplest way to run the example is with the all-in-one script:
+
+```bash
+python examples/generic_orchestrator/run_example.py
+```
+
+This script will:
+1. Create and populate the database
+2. Start the mock ML services
+3. Configure the orchestrator API
+4. Run test API calls
+5. Keep the services running for you to try your own queries
+
+When you're done, press Ctrl+C to stop all services.
+
+### Option 2: Manual Setup
+
+If you prefer to run each component separately:
+
 1. Set up the database:
    ```bash
    python examples/generic_orchestrator/setup_database.py
@@ -62,10 +83,10 @@ The generic orchestrator API provides a unified interface for model scoring that
 
 3. Start the orchestrator API with the example configurations:
    ```bash
-   python main.py
+   python main.py --with-generic-orchestrator
    ```
 
-4. Call the API endpoints:
+4. Call the API endpoints with curl:
    ```bash
    # Credit risk scoring by customer ID
    curl "http://localhost:8000/orchestrator/model_scoring/credit_risk/cust_1001"
@@ -76,14 +97,14 @@ The generic orchestrator API provides a unified interface for model scoring that
      -d '{"current_page": "electronics", "recent_searches": ["laptop", "headphones"]}'
    ```
 
-5. Use the provided client script:
+5. Or use the provided client script:
    ```bash
    # Credit risk score for a customer
-   python examples/model_scoring_client.py credit_risk --id cust_1001
+   python examples/generic_orchestrator/api_client.py credit-risk --id cust_1001
    
    # Product recommendations with both ID and context
-   python examples/model_scoring_client.py product_recommender --id cust_1002 \
-     --features "current_page=electronics,recent_searches=laptop|headphones"
+   python examples/generic_orchestrator/api_client.py product-recommender --id cust_1002 \
+     --context "current_page=electronics,recent_searches=laptop|headphones"
    ```
 
 ## Model Endpoints
@@ -176,12 +197,16 @@ Example response:
 
 ## Implementation Files
 
-- `setup_database.py`: Creates and populates the sample database
+- `run_example.py`: All-in-one script to set up and run the example
+- `database_model.py`: Database schema and sample data
 - `mock_ml_services.py`: Simulates the ML models
+- `database_extensions.py`: Database client extensions for the example
+- `api_client.py`: Client-side example of API usage
+
+### Configuration Files
 - `config/domains/model_scoring_credit_risk.yaml`: Credit risk model configuration
 - `config/domains/model_scoring_product_recommender.yaml`: Product recommendation configuration
-- `database_model.py`: Database schema and sample data
-- `api_client.py`: Client-side example of API usage
+- `config/integrations/ml_generic_example.yaml`: ML service connection settings
 
 ## How It Works
 
