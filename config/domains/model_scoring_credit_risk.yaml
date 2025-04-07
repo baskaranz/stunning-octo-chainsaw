@@ -1,0 +1,123 @@
+# Credit Risk Model Scoring Configuration
+domain_id: model_scoring_credit_risk
+description: "Credit risk assessment model API"
+
+endpoints:
+  predict:
+    description: "Predict credit risk score and recommendations"
+    endpoint_type: "composite"
+    input_schema:
+      type: "object"
+      properties:
+        customer_id:
+          type: "string"
+          description: "Unique identifier for the customer"
+        # These fields can be provided in the request body for direct scoring
+        credit_score:
+          type: "integer"
+          description: "Credit score (300-850)"
+        debt_to_income:
+          type: "number"
+          description: "Debt-to-income ratio (percentage)"
+        payment_history_score:
+          type: "number"
+          description: "Payment history score (0-1)"
+        missed_payments_last_year:
+          type: "integer"
+          description: "Number of missed payments in the last year"
+        credit_inquiries_last_year:
+          type: "integer"
+          description: "Number of credit inquiries in the last year"
+    
+    # Output format definition
+    output_schema:
+      type: "object"
+      properties:
+        customer_id:
+          type: "string"
+          description: "Unique identifier for the customer"
+        name:
+          type: "string"
+          description: "Customer name"
+        risk_score:
+          type: "object"
+          properties:
+            score:
+              type: "integer"
+              description: "Risk score (0-100, higher is better)"
+            risk_tier:
+              type: "string"
+              description: "Risk tier (Low/Medium/High/Very High)"
+            default_probability:
+              type: "number"
+              description: "Probability of default (0-1)"
+            confidence:
+              type: "number"
+              description: "Confidence score (0-1)"
+        credit_profile:
+          type: "object"
+          description: "Summary of credit profile"
+        key_factors:
+          type: "array"
+          description: "Key factors influencing the risk score"
+        recommended_actions:
+          type: "array"
+          description: "Recommended actions based on risk assessment"
+    
+    data_sources:
+      # First data source: If customer_id is provided, get customer data from database
+      - name: customer_data
+        type: database
+        operation: get_customer
+        params:
+          customer_id: "$request.path_params.model_name"
+        condition: "$request.path_params.model_name != null"
+      
+      # Credit profile data from database
+      - name: credit_profile
+        type: database
+        operation: get_credit_profile_by_customer_id
+        params:
+          customer_id: "$request.path_params.model_name"
+        condition: "$request.path_params.model_name != null"
+      
+      # Second option: Use features directly from the request body
+      - name: direct_features
+        type: direct
+        operation: use_request_features
+        params: "$request.body"
+        condition: "$request.body != null && Object.keys($request.body).length > 0"
+      
+      # ML model scoring step
+      - name: risk_prediction
+        type: ml
+        source_id: credit_risk_model
+        operation: predict
+        params:
+          features:
+            # Customer ID and basic info
+            customer_id: "$customer_data.customer_id || $request.path_params.model_name || 'unknown'"
+            
+            # Credit profile features
+            credit_score: "$credit_profile.credit_score || $direct_features.credit_score || 700"
+            debt_to_income: "$credit_profile.debt_to_income || $direct_features.debt_to_income || 0.3"
+            payment_history_score: "$credit_profile.payment_history_score || $direct_features.payment_history_score || 0.8"
+            income: "$credit_profile.income || $direct_features.income || 50000"
+            outstanding_debt: "$credit_profile.outstanding_debt || $direct_features.outstanding_debt || 15000"
+            number_of_loans: "$credit_profile.number_of_loans || $direct_features.number_of_loans || 1"
+            number_of_credit_cards: "$credit_profile.number_of_credit_cards || $direct_features.number_of_credit_cards || 2"
+            missed_payments_last_year: "$credit_profile.missed_payments_last_year || $direct_features.missed_payments_last_year || 0"
+            credit_inquiries_last_year: "$credit_profile.credit_inquiries_last_year || $direct_features.credit_inquiries_last_year || 0"
+    
+    # Response mapping to create a unified response format
+    response_mapping:
+      customer_id: "$customer_data.customer_id || $request.path_params.model_name || 'unknown'"
+      name: "$customer_data.name || 'Unknown Customer'"
+      risk_score: "$risk_prediction.risk_score"
+      credit_profile:
+        credit_score: "$credit_profile.credit_score || $direct_features.credit_score || 'N/A'"
+        debt_to_income: "$credit_profile.debt_to_income || $direct_features.debt_to_income || 'N/A'"
+        payment_history_score: "$credit_profile.payment_history_score || $direct_features.payment_history_score || 'N/A'"
+      key_factors: "$risk_prediction.key_factors"
+      recommended_actions: "$risk_prediction.recommended_actions"
+      prediction_date: "$risk_prediction.prediction_date"
