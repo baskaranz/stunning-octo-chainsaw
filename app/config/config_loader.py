@@ -1,6 +1,7 @@
 import os
 import yaml
-from typing import Any, Dict, Optional
+import glob
+from typing import Any, Dict, Optional, List
 from pathlib import Path
 
 from app.common.utils.logging_utils import get_logger
@@ -70,6 +71,24 @@ class ConfigLoader:
             The integration configuration or an empty dict if not found
         """
         return self.load_yaml_file(f"integrations/{integration_type}.yaml")
+    
+    def list_domain_configs(self) -> List[str]:
+        """List all available domain configuration files.
+        
+        Returns:
+            A list of domain names (without the .yaml extension)
+        """
+        domain_dir = os.path.join(self.config_dir, "domains")
+        domain_files = glob.glob(os.path.join(domain_dir, "*.yaml"))
+        
+        # Extract domain names from filenames
+        domain_names = []
+        for filepath in domain_files:
+            filename = os.path.basename(filepath)
+            domain_name = os.path.splitext(filename)[0]
+            domain_names.append(domain_name)
+        
+        return domain_names
     
     def reload_config(self, filename: Optional[str] = None) -> None:
         """Reload configuration from disk.

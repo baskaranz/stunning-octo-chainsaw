@@ -44,8 +44,25 @@ class DataOrchestrator:
         """
         result = {}
         
+        # Check if endpoint has an explicit type
+        endpoint_type = endpoint_config.get("endpoint_type")
+        
         # Get the data sources defined in the endpoint configuration
         sources = endpoint_config.get("data_sources", [])
+        
+        # Validate that sources match the endpoint type (if specified)
+        if endpoint_type and endpoint_type != "composite":
+            # Filter sources to only include those matching the endpoint type
+            matching_sources = [s for s in sources if s.get("type") == endpoint_type]
+            
+            if not matching_sources and sources:
+                logger.warning(
+                    f"Endpoint type '{endpoint_type}' specified, but no matching data sources found. "
+                    f"This may lead to unexpected results for execution {execution_id}"
+                )
+            
+            # Use only the matching sources
+            sources = matching_sources
         
         for source in sources:
             source_type = source.get("type")
@@ -58,15 +75,51 @@ class DataOrchestrator:
             if not all([source_type, source_name, operation]):
                 logger.warning(f"Skipping misconfigured source in execution {execution_id}")
                 continue
-            
-            # Skip if the source type is not supported
-            if source_type not in self.sources:
-                logger.warning(f"Unsupported source type '{source_type}' in execution {execution_id}")
-                continue
+                
+            # Check if this source has a condition
+            condition = source.get("condition")
+            if condition:
+                # Simple condition evaluation - only supports references to request and result
+                try:
+                    # Evaluate the condition (very simple evaluation for now)
+                    if condition.startswith("$"):
+                        parts = condition[1:].split(".")
+                        
+                        # Get value from request or previous results
+                        if parts[0] == "request":
+                            value = self._get_nested_value(request_data, parts[1:])
+                        elif parts[0] in result:
+                            value = self._get_nested_value(result[parts[0]], parts[1:])
+                        else:
+                            value = None
+                            
+                        # Skip if condition evaluates to false/None
+                        if not value:
+                            logger.info(f"Skipping source '{source_name}' in execution {execution_id} due to condition: {condition}")
+                            continue
+                    else:
+                        # For more complex conditions, we might need a proper expression evaluator
+                        # For now, just log and continue with execution
+                        logger.warning(f"Complex condition not supported: {condition} in execution {execution_id}")
+                except Exception as e:
+                    logger.warning(f"Error evaluating condition '{condition}' in execution {execution_id}: {str(e)}")
+                    # Continue with execution as fallback
             
             try:
                 # Resolve parameter values from request data
                 resolved_params = self._resolve_params(params, request_data, result)
+                
+                # Check if this is a direct mapping - special case for using request data directly
+                if source_type == "direct":
+                    # Just use the parameters directly without calling any external source
+                    source_result = resolved_params
+                    result[source_name] = source_result
+                    continue
+                    
+                # Skip if the source type is not supported
+                if source_type not in self.sources:
+                    logger.warning(f"Unsupported source type '{source_type}' in execution {execution_id}")
+                    continue
                 
                 # Execute the operation on the data source
                 source_result = await self._execute_source_operation(
@@ -138,7 +191,6 @@ class DataOrchestrator:
     
     def _apply_transform(self, transform: Dict[str, Any], source_result: Any, current_result: Dict[str, Any]) -> Any:
         """Apply a transformation to the source result."""
-        # Simple implementation - could be expanded to support more complex transformations
         transform_type = transform.get("type")
         
         if transform_type == "select_fields":

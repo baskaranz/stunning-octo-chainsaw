@@ -1,0 +1,176 @@
+# Customer Churn Prediction Model Scoring Configuration
+domain_id: model_scoring_churn_pred
+description: "Customer churn prediction model API"
+
+endpoints:
+  predict:
+    description: "Predict customer churn probability"
+    endpoint_type: "composite"
+    input_schema:
+      type: "object"
+      properties:
+        customer_id:
+          type: "string"
+          description: "Unique identifier for the customer"
+        # These fields can be provided in the request body for direct scoring without database lookup
+        company_size:
+          type: "string"
+          description: "Size of the company (Small/Medium/Large/Enterprise)"
+        industry:
+          type: "string"
+          description: "Industry sector"
+        plan_tier:
+          type: "string"
+          description: "Subscription plan tier (Basic/Pro/Enterprise)"
+        contract_months:
+          type: "integer"
+          description: "Contract duration in months (0 for month-to-month)"
+        monthly_amount:
+          type: "number"
+          description: "Monthly subscription amount"
+        payment_delays:
+          type: "integer"
+          description: "Number of payment delays in last 12 months"
+        active_users:
+          type: "integer"
+          description: "Number of active users"
+        active_users_trend:
+          type: "string"
+          description: "Trend in active users (increasing/stable/decreasing)"
+        feature_usage_score:
+          type: "number"
+          description: "Feature usage score (0-1)"
+        logins_last_month:
+          type: "integer"
+          description: "Number of logins in the last month"
+        support_tickets:
+          type: "integer"
+          description: "Number of support tickets in last 30 days"
+        nps:
+          type: "integer"
+          description: "Latest NPS score (0-10)"
+    
+    # Output format definition
+    output_schema:
+      type: "object"
+      properties:
+        customer_id:
+          type: "string"
+          description: "Unique identifier for the customer"
+        company_name:
+          type: "string"
+          description: "Name of the company"
+        subscription:
+          type: "object"
+          properties:
+            plan: 
+              type: "string"
+              description: "Subscription plan tier"
+            monthly_amount:
+              type: "number"
+              description: "Monthly subscription amount"
+            renewal_date:
+              type: "string"
+              description: "Date of next renewal"
+        churn_prediction:
+          type: "object"
+          properties:
+            probability:
+              type: "number"
+              description: "Probability of churn (0-1)"
+            risk_tier:
+              type: "string"
+              description: "Risk tier (Low/Medium/High/Critical)"
+            confidence:
+              type: "number"
+              description: "Confidence score (0-1)"
+        key_factors:
+          type: "object"
+          description: "Key factors influencing the prediction"
+        recommended_actions:
+          type: "array"
+          description: "Recommended actions to reduce churn risk"
+    
+    data_sources:
+      # First data source: If customer_id is provided, get data from database
+      - name: customer_data
+        type: database
+        operation: get_customer_data
+        params:
+          customer_id: "$request.path_params.customer_id"
+        condition: "$request.path_params.customer_id != null"
+      
+      - name: subscription_data
+        type: database
+        operation: get_subscription_data
+        params:
+          customer_id: "$request.path_params.customer_id"
+        condition: "$request.path_params.customer_id != null"
+      
+      - name: usage_data
+        type: database
+        operation: get_usage_metrics
+        params:
+          customer_id: "$request.path_params.customer_id"
+        condition: "$request.path_params.customer_id != null"
+      
+      # Second option: Use features directly from the request body
+      - name: direct_features
+        type: direct
+        operation: use_request_features
+        params: "$request.body"
+        condition: "$request.body != null && Object.keys($request.body).length > 0"
+      
+      # ML model scoring step
+      - name: churn_prediction
+        type: ml
+        source_id: churn_model
+        operation: predict_customer_churn
+        params:
+          features:
+            # Customer ID and profile data (from DB or request)
+            customer_id: "$customer_data.customer_id || $request.path_params.customer_id || 'unknown'"
+            company_name: "$customer_data.company_name || $direct_features.company_name || 'Unknown Company'"
+            industry: "$customer_data.industry || $direct_features.industry || 'Unknown'"
+            company_size: "$customer_data.company_size || $direct_features.company_size || 'Unknown'"
+            region: "$customer_data.region || $direct_features.region || 'Unknown'"
+            customer_segment: "$customer_data.customer_segment || $direct_features.customer_segment || 'Unknown'"
+            
+            # Subscription features
+            plan_tier: "$subscription_data.plan_tier || $direct_features.plan_tier || 'Unknown'"
+            monthly_amount: "$subscription_data.monthly_amount || $direct_features.monthly_amount || 0"
+            contract_months: "$subscription_data.contract_months || $direct_features.contract_months || 0"
+            payment_delays: "$subscription_data.payment_delays || $direct_features.payment_delays || 0"
+            has_auto_renewal: "$subscription_data.has_auto_renewal || $direct_features.has_auto_renewal || false"
+            
+            # Usage metrics
+            active_users: "$usage_data.active_users || $direct_features.active_users || 0"
+            active_users_trend: "$usage_data.active_users_trend || $direct_features.active_users_trend || 'stable'"
+            feature_usage_score: "$usage_data.feature_usage_score || $direct_features.feature_usage_score || 0.5"
+            logins_last_month: "$usage_data.logins_last_month || $direct_features.logins_last_month || 0"
+            
+            # Recent activity data from request
+            support_tickets: "$request.query_params.tickets || $direct_features.support_tickets || 0"
+            latest_nps: "$request.query_params.nps || $direct_features.nps || 5"
+    
+    # Define response structure to combine all data sources
+    response_mapping:
+      customer_id: "$customer_data.customer_id || $request.path_params.customer_id || 'unknown'"
+      company_name: "$customer_data.company_name || $direct_features.company_name || 'Unknown Company'"
+      prediction_date: "$churn_prediction.prediction.prediction_date"
+      subscription:
+        plan: "$subscription_data.plan_tier || $direct_features.plan_tier || 'Unknown'"
+        monthly_amount: "$subscription_data.monthly_amount || $direct_features.monthly_amount || 0"
+        remaining_months: "$subscription_data.contract_months || $direct_features.contract_months || 0"
+        renewal_date: "$subscription_data.renewal_date || $direct_features.renewal_date || 'Unknown'"
+      usage_metrics:
+        active_users: "$usage_data.active_users || $direct_features.active_users || 0"
+        active_users_trend: "$usage_data.active_users_trend || $direct_features.active_users_trend || 'stable'"
+        feature_adoption: "$usage_data.key_feature_adoption || $direct_features.feature_adoption || 0.5"
+        logins_last_month: "$usage_data.logins_last_month || $direct_features.logins_last_month || 0"
+      churn_prediction:
+        probability: "$churn_prediction.prediction.probability"
+        risk_tier: "$churn_prediction.prediction.risk_tier"
+        confidence: "$churn_prediction.prediction.confidence"
+      key_factors: "$churn_prediction.key_factors"
+      recommended_actions: "$churn_prediction.recommended_actions"
