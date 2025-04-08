@@ -72,16 +72,24 @@ endpoints:
 
 ### Database Operation Definition
 
-Database operations are defined in `config/database.yaml`:
+Database operations are defined in domain-specific database configuration files:
 
 ```yaml
+# config/domains/my_domain/database.yaml
 database:
+  sources:
+    default:
+      connection_string: "sqlite:///my_domain.db"
+      pool_size: 5
+      pool_timeout: 30
   operations:
     get_customer:
       query: "SELECT * FROM customers WHERE customer_id = :customer_id"
       params:
         - customer_id
 ```
+
+You can also define global database operations in `config/database.yaml` for operations that are shared across multiple domains, but domain-specific configurations are preferred for better separation of concerns.
 
 ## API Endpoints
 
@@ -107,9 +115,10 @@ endpoints:
 
 ### API Source Definition
 
-API sources are defined in `config/integrations/api_sources.yaml`:
+API sources are defined in domain-specific configuration files:
 
 ```yaml
+# config/domains/my_domain/integrations/api_sources.yaml
 api:
   sources:
     credit_api:
@@ -125,6 +134,8 @@ api:
           path_params:
             - customer_id
 ```
+
+For shared API sources that may be used across multiple domains, you can still define them in the global `config/integrations/api_sources.yaml` file, but domain-specific configurations are preferred when the API is only used by a specific domain.
 
 ## Feature Store Endpoints
 
@@ -153,9 +164,10 @@ endpoints:
 
 ### Feast Source Definition
 
-Feast sources are defined in `config/integrations/feast_config.yaml`:
+Feast sources are defined in domain-specific configuration files:
 
 ```yaml
+# config/domains/my_domain/integrations/feast_config.yaml
 feast:
   sources:
     default:
@@ -166,6 +178,8 @@ feast:
         - "default/customer_features:days_since_last_purchase"
         - "default/customer_features:purchase_frequency"
 ```
+
+For shared feature stores that may be used across multiple domains, you can still define them in the global `config/integrations/feast_config.yaml` file, but domain-specific configurations are preferred when the feature store is only used by a specific domain.
 
 ## ML Service Endpoints
 
@@ -203,9 +217,10 @@ endpoints:
 
 ### ML Service Definition
 
-ML services are defined in `config/integrations/ml_config.yaml`:
+ML services are defined in domain-specific configuration files:
 
 ```yaml
+# config/domains/my_domain/integrations/ml_config.yaml
 ml:
   sources:
     churn_model:
@@ -218,6 +233,8 @@ ml:
           headers:
             Content-Type: "application/json"
 ```
+
+For shared ML services that may be used across multiple domains, you can still define them in the global `config/integrations/ml_config.yaml` file, but domain-specific configurations are preferred when the ML service is only used by a specific domain.
 
 ### Key Differences from Other Endpoint Types
 

@@ -30,7 +30,19 @@ Where `{model_name}` is the configuration-defined model identifier (e.g., `churn
 
 ## Configuration Structure
 
-Each model is configured using a YAML file in the `config/domains/` directory, named according to the pattern:
+Each model has its own dedicated configuration directory structure under `config/domains/`:
+
+```
+config/domains/model_scoring_{model_name}/
+├── database.yaml                 # Domain-specific database operations
+├── integrations/                 # Domain-specific integrations
+│   ├── api_sources.yaml          # API connections for this model
+│   ├── feast_config.yaml         # Feast settings for this model
+│   └── ml_config.yaml            # ML model settings for this model
+└── model_scoring_{model_name}.yaml   # Main domain endpoint configuration
+```
+
+The main domain configuration file follows the pattern:
 
 ```
 model_scoring_{model_name}.yaml
@@ -145,10 +157,29 @@ python example/model_scoring_client.py product-recommender --id cust_1002 --cont
 
 To add a new model to the orchestrator:
 
-1. Create a configuration file in `config/domains/model_scoring_{model_name}.yaml`
-2. Define the data sources, feature mapping, and response structure
-3. Add any necessary database methods to retrieve entity data
-4. Configure the ML model client to handle the new model type
+1. Create a domain configuration folder structure:
+   ```
+   mkdir -p config/domains/model_scoring_{model_name}/integrations
+   ```
+
+2. Create the main domain configuration file:
+   ```
+   config/domains/model_scoring_{model_name}.yaml
+   ```
+
+3. Create domain-specific database configuration:
+   ```
+   config/domains/model_scoring_{model_name}/database.yaml
+   ```
+
+4. Create domain-specific integration configurations:
+   ```
+   config/domains/model_scoring_{model_name}/integrations/ml_config.yaml
+   ```
+
+5. Define the data sources, feature mapping, and response structure in the main domain configuration
+6. Add domain-specific database operations to retrieve entity data
+7. Configure the ML model client in the domain's integration files
 
 No code changes are required to the orchestrator API itself, as all logic is driven by configuration.
 

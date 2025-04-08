@@ -46,29 +46,36 @@ For each domain:
 
 ### 2. Set Up Directory Structure
 
-Create a configuration directory for your domain:
+Create a configuration directory for your domain with dedicated subdirectories for database and integration configurations:
 
 ```
 my_orchestrator_app/
 ├── config/
-│   ├── config.yaml               # Global settings
-│   ├── database.yaml             # Database connections and queries
-│   ├── domains/
-│   │   └── my_domain.yaml        # Domain endpoint configuration
-│   └── integrations/
-│       ├── api_sources.yaml      # API connections
-│       ├── feast_config.yaml     # Feast settings
-│       └── ml_config.yaml        # ML model settings
+│   ├── config.yaml                                # Global settings
+│   └── domains/
+│       └── my_domain/                             # Domain-specific directory
+│           ├── database.yaml                      # Domain-specific database connections and queries
+│           ├── integrations/                      # Domain-specific integrations
+│           │   ├── api_sources.yaml               # Domain-specific API connections
+│           │   ├── feast_config.yaml              # Domain-specific Feast settings
+│           │   └── ml_config.yaml                 # Domain-specific ML model settings
+│           └── my_domain.yaml                     # Domain endpoint configuration file
 ```
 
 ### 3. Configure Data Sources
 
 #### 3.1 For Database Sources
 
-Add your database operations to `database.yaml`:
+Add your database operations to your domain's `database.yaml`:
 
 ```yaml
+# config/domains/my_domain/database.yaml
 database:
+  sources:
+    default:
+      connection_string: "sqlite:///my_domain.db"
+      pool_size: 5
+      pool_timeout: 30
   operations:
     get_my_entity:
       query: "SELECT * FROM my_table WHERE id = :entity_id"
@@ -78,9 +85,10 @@ database:
 
 #### 3.2 For API Sources
 
-Add your API endpoints to `api_sources.yaml`:
+Add your API endpoints to your domain's `integrations/api_sources.yaml`:
 
 ```yaml
+# config/domains/my_domain/integrations/api_sources.yaml
 api:
   sources:
     my_api:
@@ -98,9 +106,10 @@ api:
 
 #### 3.3 For Feast Sources
 
-Add your feature services to `feast_config.yaml`:
+Add your feature services to your domain's `integrations/feast_config.yaml`:
 
 ```yaml
+# config/domains/my_domain/integrations/feast_config.yaml
 feast:
   sources:
     my_feature_store:
@@ -115,9 +124,10 @@ feast:
 
 #### 3.4 For ML Models
 
-Add your model configuration to `ml_config.yaml`:
+Add your model configuration to your domain's `integrations/ml_config.yaml`:
 
 ```yaml
+# config/domains/my_domain/integrations/ml_config.yaml
 ml:
   sources:
     my_model:
@@ -130,6 +140,8 @@ ml:
           endpoint: "/predict"
           method: "POST"
 ```
+
+> Note: The system also supports global configuration files at the root level (`config/database.yaml` and `config/integrations/`) for backward compatibility, but domain-specific configurations are preferred as they allow better separation between domains.
 
 ### 4. Configure Domain Endpoint
 
