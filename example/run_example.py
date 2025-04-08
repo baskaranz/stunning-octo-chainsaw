@@ -27,7 +27,7 @@ from pathlib import Path
 from typing import Dict, Any, List, Optional
 
 # Add parent directory to path so we can import modules
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Import necessary modules
 from app.adapters.database.database_client import DatabaseClient
@@ -192,13 +192,14 @@ def run_api_server():
     
     global api_process
     
-    # Set environment variable for the example
+    # Set environment variables for the example
     env = os.environ.copy()
     env["GENERIC_ORCHESTRATOR_EXAMPLE"] = "true"
+    env["CONFIG_DIR"] = str(Path(__file__).parent / "config")
     
     # Start the process with the --reload flag for development
     api_process = subprocess.Popen(
-        [sys.executable, "main.py", "--reload"],
+        [sys.executable, "main.py", "--reload", "--config", str(Path(__file__).parent / "config/config.yaml")],
         env=env,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE

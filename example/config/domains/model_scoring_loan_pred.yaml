@@ -1,0 +1,131 @@
+# Loan Prediction Model Scoring Configuration
+domain_id: model_scoring_loan_pred
+description: "Loan approval prediction model API"
+
+endpoints:
+  predict:
+    description: "Predict loan approval probability using features from database"
+    endpoint_type: "composite"
+    input_schema:
+      type: "object"
+      properties:
+        applicant_id:
+          type: "string"
+          description: "Unique identifier for the loan applicant"
+        # These fields can be provided in the request body for direct scoring without database lookup
+        age:
+          type: "integer"
+          description: "Applicant age in years"
+        annual_income:
+          type: "number"
+          description: "Annual income in dollars"
+        credit_score:
+          type: "integer"
+          description: "Credit score (300-850)"
+        debt_to_income:
+          type: "number"
+          description: "Debt-to-income ratio (percentage)"
+        employment_years:
+          type: "number"
+          description: "Years of employment"
+        loan_amount:
+          type: "number"
+          description: "Requested loan amount in dollars"
+        loan_term:
+          type: "integer"
+          description: "Loan term in months"
+        current_loans:
+          type: "integer"
+          description: "Number of current active loans"
+        total_current_debt:
+          type: "number"
+          description: "Total current debt in dollars"
+    
+    # Output format definition
+    output_schema:
+      type: "object"
+      properties:
+        applicant_id:
+          type: "string"
+          description: "Unique identifier for the loan applicant"
+        loan_details:
+          type: "object"
+          properties:
+            amount: 
+              type: "number"
+              description: "Loan amount"
+            term:
+              type: "integer"
+              description: "Loan term in months"
+            purpose:
+              type: "string"
+              description: "Purpose of the loan"
+        prediction:
+          type: "object"
+          properties:
+            approval_probability:
+              type: "number"
+              description: "Probability of loan approval (0-1)"
+            decision:
+              type: "string"
+              description: "Approve/Deny decision"
+            risk_tier:
+              type: "string"
+              description: "Risk tier (Low/Medium/High)"
+            suggested_interest_rate:
+              type: "number"
+              description: "Suggested interest rate percentage"
+        key_factors:
+          type: "array"
+          description: "Key factors influencing the prediction"
+    
+    data_sources:
+      # First data source: If applicant_id is provided, get features from database
+      - name: applicant_features
+        type: database
+        source_id: default
+        operation: get_applicant_features
+        params:
+          applicant_id: "$request.path_params.applicant_id"
+        condition: "$request.path_params.applicant_id != null"
+      
+      # Second option: Use features directly from the request body
+      - name: direct_features
+        type: direct
+        operation: use_request_features
+        params: "$request.body"
+        condition: "$request.body != null && Object.keys($request.body).length > 0"
+      
+      # ML model scoring step
+      - name: loan_prediction
+        type: ml
+        source_id: loan_model
+        operation: predict_loan_approval
+        params:
+          features:
+            # If from database
+            applicant_id: "$applicant_features.applicant_id || $request.path_params.applicant_id || 'unknown'"
+            age: "$applicant_features.age || $direct_features.age || 30"
+            annual_income: "$applicant_features.annual_income || $direct_features.annual_income || 50000"
+            credit_score: "$applicant_features.credit_score || $direct_features.credit_score || 700"
+            debt_to_income: "$applicant_features.debt_to_income || $direct_features.debt_to_income || 0.3"
+            employment_years: "$applicant_features.employment_years || $direct_features.employment_years || 5"
+            loan_amount: "$applicant_features.loan_amount || $direct_features.loan_amount || 20000"
+            loan_term: "$applicant_features.loan_term || $direct_features.loan_term || 36"
+            current_loans: "$applicant_features.current_loans || $direct_features.current_loans || 0"
+            total_current_debt: "$applicant_features.total_current_debt || $direct_features.total_current_debt || 0"
+            approval_ratio: "$applicant_features.approval_ratio || $direct_features.approval_ratio || 0"
+    
+    # Response mapping to create a unified response format
+    response_mapping:
+      applicant_id: "$applicant_features.applicant_id || $request.path_params.applicant_id || 'unknown'"
+      loan_details:
+        amount: "$applicant_features.loan_amount || $direct_features.loan_amount || 0"
+        term: "$applicant_features.loan_term || $direct_features.loan_term || 0"
+        purpose: "$applicant_features.loan_purpose || $direct_features.loan_purpose || 'Unspecified'"
+      prediction:
+        approval_probability: "$loan_prediction.probability"
+        decision: "$loan_prediction.decision"
+        risk_tier: "$loan_prediction.risk_tier"
+        suggested_interest_rate: "$loan_prediction.suggested_interest_rate"
+      key_factors: "$loan_prediction.factors"

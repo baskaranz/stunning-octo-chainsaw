@@ -12,8 +12,23 @@ class ConfigLoader:
     """Loads and parses configuration files."""
     
     def __init__(self, config_dir: Optional[str] = None):
-        # Default to the config directory in the project root
-        self.config_dir = config_dir or os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "config")
+        # Check for CONFIG_PATH environment variable
+        env_config_path = os.environ.get("CONFIG_PATH")
+        if env_config_path and os.path.isfile(env_config_path):
+            # If CONFIG_PATH points to a file, use its directory
+            self.config_dir = os.path.dirname(env_config_path)
+            logger.info(f"Using config directory from CONFIG_PATH: {self.config_dir}")
+        else:
+            # Check for CONFIG_DIR environment variable
+            env_config_dir = os.environ.get("CONFIG_DIR")
+            if env_config_dir and os.path.isdir(env_config_dir):
+                self.config_dir = env_config_dir
+                logger.info(f"Using config directory from CONFIG_DIR: {self.config_dir}")
+            else:
+                # Fall back to provided config_dir or default
+                self.config_dir = config_dir or os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "config")
+                logger.info(f"Using default config directory: {self.config_dir}")
+        
         self.config_cache = {}
     
     def load_config(self) -> Dict[str, Any]:

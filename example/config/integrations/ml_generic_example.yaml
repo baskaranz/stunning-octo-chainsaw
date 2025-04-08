@@ -1,0 +1,19 @@
+# ML service configurations for the generic orchestrator example
+sources:
+  credit_risk_model:
+    base_url: "http://localhost:5003"
+    models:
+      default:
+        endpoint: "/predict"
+        timeout: 30
+        headers:
+          Content-Type: "application/json"
+  
+  product_recommender:
+    base_url: "http://localhost:5004"
+    models:
+      default:
+        endpoint: "/recommend"
+        timeout: 30
+        headers:
+          Content-Type: "application/json"

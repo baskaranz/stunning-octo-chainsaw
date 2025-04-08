@@ -16,7 +16,7 @@ def create_app() -> FastAPI:
     config = config_loader.load_config()
     
     # Print configuration path being used
-    config_path = os.environ.get("ORCHESTRATOR_CONFIG_PATH", "config")
+    config_path = os.environ.get("CONFIG_PATH", os.environ.get("ORCHESTRATOR_CONFIG_PATH", "config"))
     logger.info(f"Using configuration path: {config_path}")
     
     # Initialize FastAPI app

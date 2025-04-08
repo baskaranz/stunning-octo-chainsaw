@@ -60,92 +60,158 @@ The service will start on http://localhost:8000 by default.
 
 ## Configuration
 
-Configuration files are located in the `config/` directory:
+The service uses a configuration-driven approach with files located in the `config/` directory:
 
 - `config.yaml`: Global application settings
 - `database.yaml`: Database connection settings
-- `domains/`: Domain-specific endpoint configurations
+- `domains/`: Domain-specific endpoint configurations (one file per domain)
 - `integrations/`: External system configurations
+
+**For Example Configurations:** See the [example/config](example/config/) directory for complete sample configurations that demonstrate different data source patterns.
 
 ### Endpoint Configuration
 
 The Orchestrator API Service supports configuring different types of endpoints through YAML configuration files. You can define endpoints that:
 
-1. **Internal Database Operations**: Query database tables for feature retrieval (not directly exposed via API)
+1. **Database to ML Model**: Retrieve features from database tables and score with ML models
    ```yaml
    endpoints:
-     get_customer:
-       description: "Get customer details from database"
-       endpoint_type: "database"
-       internal_only: true
-       data_sources:
-         - name: customer_data
-           type: database
-           operation: get_customer
-           params:
-             customer_id: "$request.customer_id"
-       primary_source: customer_data
-       response_mapping: null  # Use database results directly
-   ```
-
-2. **Expose External API Data**: Call external APIs and return their responses
-   ```yaml
-   endpoints:
-     get_credit_score:
-       description: "Get credit score from external API"
-       endpoint_type: "api"
-       data_sources:
-         - name: credit_data
-           type: api
-           operation: get_customer_credit
-           params:
-             customer_id: "$request.customer_id"
-       primary_source: credit_data
-       response_mapping: null  # Use API response directly
-   ```
-
-3. **Expose Feature Store Data**: Fetch and return data from Feast feature store
-   ```yaml
-   endpoints:
-     get_customer_features:
-       description: "Get customer features from Feast"
-       endpoint_type: "feast"
-       data_sources:
-         - name: customer_features
-           type: feast
-           operation: get_customer_features
-           params:
-             customer_id: "$request.customer_id"
-       primary_source: customer_features
-       response_mapping: null  # Use feature store results directly
-   ```
-
-4. **Combine Multiple Data Sources**: Orchestrate data from multiple sources (including database)
-   ```yaml
-   endpoints:
-     get_customer_profile:
-       description: "Get comprehensive customer view"
+     predict:
+       description: "Predict credit risk using customer data"
        endpoint_type: "composite"
        data_sources:
          - name: customer_data
            type: database
            operation: get_customer
            params:
-             customer_id: "$request.customer_id"
-         - name: predictions
+             customer_id: "$request.path_params.entity_id"
+         
+         - name: risk_prediction
            type: ml
-           operation: predict_churn
+           source_id: credit_model
+           operation: predict
            params:
-             customer_id: "$request.customer_id"
-             features: "$customer_data"
+             features:
+               credit_score: "$customer_data.credit_score"
+               income: "$customer_data.annual_income"
+       
        response_mapping:
-         id: "$request.customer_id"
-         features: "$customer_data"
-         churn_probability: "$predictions.probability"
-         churn_risk_level: "$predictions.risk_level"
+         customer_id: "$customer_data.customer_id"
+         risk_score: "$risk_prediction.score"
+         risk_tier: "$risk_prediction.risk_tier"
    ```
 
-For more detailed configuration examples, see the [Example README](example/README.md).
+2. **External API to ML Model**: Call external APIs for data and pass to ML models
+   ```yaml
+   endpoints:
+     predict:
+       description: "Predict churn using external API data"
+       endpoint_type: "composite"
+       data_sources:
+         - name: customer_profile
+           type: api
+           source_id: customer_api
+           operation: get_customer_profile
+           params:
+             customer_id: "$request.path_params.entity_id"
+         
+         - name: churn_prediction
+           type: ml
+           source_id: churn_model
+           operation: predict
+           params:
+             features:
+               tenure: "$customer_profile.tenure"
+               monthly_charges: "$customer_profile.monthly_charges"
+       
+       response_mapping:
+         customer_id: "$customer_profile.id"
+         churn_probability: "$churn_prediction.probability"
+         risk_level: "$churn_prediction.risk_level"
+   ```
+
+3. **Feature Store to ML Model**: Fetch features from Feast and use for model predictions
+   ```yaml
+   endpoints:
+     predict:
+       description: "Generate recommendations using Feast features"
+       endpoint_type: "composite"
+       data_sources:
+         - name: customer_features
+           type: feast
+           source_id: default
+           operation: get_customer_features
+           params:
+             entity_id: "$request.path_params.entity_id"
+             feature_refs:
+               - "customer:purchase_history"
+               - "customer:category_affinity"
+         
+         - name: recommendations
+           type: ml
+           source_id: recommender_model
+           operation: predict
+           params:
+             features:
+               purchase_history: "$customer_features.purchase_history"
+               category_affinity: "$customer_features.category_affinity"
+       
+       response_mapping:
+         customer_id: "$request.path_params.entity_id"
+         recommendations: "$recommendations.recommended_products"
+         relevance_scores: "$recommendations.relevance_scores"
+   ```
+
+4. **Multi-Source ML Model**: Combine data from multiple sources for complex model scoring
+   ```yaml
+   endpoints:
+     predict:
+       description: "Generate loan approval prediction from multiple sources"
+       endpoint_type: "composite"
+       data_sources:
+         # Get customer profile from database
+         - name: applicant
+           type: database
+           operation: get_applicant
+           params:
+             applicant_id: "$request.path_params.entity_id"
+         
+         # Get feature data from feature store
+         - name: behavior_features
+           type: feast
+           source_id: default
+           operation: get_features
+           params:
+             entity_id: "$request.path_params.entity_id"
+         
+         # Get external credit score from API
+         - name: credit_data
+           type: api
+           source_id: credit_api
+           operation: get_credit_score
+           params:
+             applicant_id: "$request.path_params.entity_id"
+         
+         # Score the loan with ML model
+         - name: loan_prediction
+           type: ml
+           source_id: loan_model
+           operation: predict
+           params:
+             features:
+               age: "$applicant.age"
+               income: "$applicant.annual_income"
+               payment_history: "$behavior_features.payment_history"
+               credit_score: "$credit_data.score"
+       
+       response_mapping:
+         applicant_id: "$applicant.applicant_id"
+         approval_probability: "$loan_prediction.probability"
+         decision: "$loan_prediction.decision"
+         suggested_interest_rate: "$loan_prediction.interest_rate"
+   ```
+
+For more detailed configuration examples, see the [Example Config README](example/config/README.md).
 
 ## Examples
 
