@@ -1,9 +1,15 @@
-# Database Configuration
+# Core Database Configuration
+#
+# This file defines database connections and operations for the core service.
+# For specific use cases, you should create a custom database.yaml file
+# in your application's config directory.
 
 database:
   sources:
+    # Example of a database source configuration
+    # Replace or extend this with your actual database connections
     default:
-      connection_string: "sqlite:///customer360.db"
+      connection_string: "sqlite:///orchestrator.db"
       pool_size: 5
       max_overflow: 10
       pool_timeout: 30
@@ -11,23 +17,12 @@ database:
       connect_args:
         check_same_thread: false
 
+  # Example database operations
+  # Define your own operations based on your schema
   operations:
-    get_applicant:
-      query: "SELECT * FROM applicants WHERE applicant_id = :applicant_id"
+    # Example operation to get a record by ID
+    get_by_id:
+      query: "SELECT * FROM ${table} WHERE id = :id"
       params:
-        - applicant_id
-    
-    get_financial_data:
-      query: "SELECT * FROM financial_data WHERE applicant_id = :applicant_id"
-      params:
-        - applicant_id
-    
-    get_loan_history:
-      query: "SELECT * FROM loan_history WHERE applicant_id = :applicant_id"
-      params:
-        - applicant_id
-    
-    get_applicant_features:
-      query: "SELECT a.applicant_id, a.age, f.annual_income, f.credit_score, f.debt_to_income, f.employment_years, f.loan_amount, f.loan_term, f.loan_purpose, h.previous_applications, h.approved_loans, h.rejected_loans, h.current_loans, h.total_current_debt, CASE WHEN h.previous_applications > 0 THEN CAST(h.approved_loans AS FLOAT) / h.previous_applications ELSE 0 END AS approval_ratio FROM applicants a JOIN financial_data f ON a.applicant_id = f.applicant_id JOIN loan_history h ON a.applicant_id = h.applicant_id WHERE a.applicant_id = :applicant_id"
-      params:
-        - applicant_id
+        - id
+        - table

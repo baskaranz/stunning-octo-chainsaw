@@ -1,39 +1,22 @@
-# Feast Feature Store Configuration
-
-default:
-  repo_path: "./feature_repo"
-  project: "default"
-
-sources:
-  default:
-    repo_path: "./feature_repo"
-    project: "default"
-    default_customer_features:
-      - "default/customer_features:customer_lifetime_value"
-      - "default/customer_features:days_since_last_purchase"
-      - "default/customer_features:purchase_frequency"
-      - "default/customer_features:total_purchases"
-      - "default/customer_features:average_order_value"
-    description: "Default Feast feature store"
-    enabled: true
-  
-  # Example additional feature store
-  # marketing:
-  #   repo_path: "./marketing_feature_repo"
-  #   project: "marketing"
-  #   default_customer_features:
-  #     - "marketing/customer_segments:segment_id"
-  #     - "marketing/customer_engagement:email_open_rate"
-  #     - "marketing/customer_engagement:click_through_rate"
-  #   description: "Marketing feature store"
-  #   enabled: true
-
-# Feast Configuration
+# Core Feast Configuration
+#
+# This file defines Feast feature store connections for the core service.
+# For specific use cases, you should create a custom feast_config.yaml file
+# in your application's config directory.
 
 feast:
   sources:
+    # Example of a Feast feature store configuration
+    # Replace or extend this with your actual feature stores
     default:
-      url: "http://localhost:5000/api/v1/feast"
-      registry: "feast_registry"
+      repo_path: "./feature_repo"
       project: "default"
-      timeout: 10
+      entity_key_serialization_version: 2
+      
+      # Example feature service definitions
+      feature_services:
+        example_features:
+          features:
+            - "example:feature1"
+            - "example:feature2"
+            - "example:feature3"

@@ -1,15 +1,33 @@
-# API Sources Configuration
+# Core API Sources Configuration
+#
+# This file defines API connections for the core service.
+# For specific use cases, you should create a custom api_sources.yaml file
+# in your application's config directory.
 
 api:
   sources:
+    # Example of an API source configuration
+    # Replace or extend this with your actual API connections
     default:
-      base_url: "http://localhost:5000"
+      base_url: "http://api.example.com"
       timeout: 10
       headers:
         Content-Type: "application/json"
+        Authorization: "Bearer $ENV[API_TOKEN]"
+      
+      # Example operations
+      operations:
+        get_by_id:
+          method: GET
+          path: "/resource/{id}"
+          path_params:
+            - id
         
-    credit_api:
-      base_url: "http://localhost:5000/api/v1/credit"
-      timeout: 5
-      headers:
-        Content-Type: "application/json"
+        create_resource:
+          method: POST
+          path: "/resource"
+          body_template: |
+            {
+              "name": "${name}",
+              "description": "${description}"
+            }
