@@ -15,7 +15,7 @@ The Orchestrator API Service serves as a middleware layer that:
 
 - **Declarative Configuration**: Define APIs and data flows through YAML configuration
 - **Multi-Source Orchestration**: Coordinate data retrieval and manipulation across:
-  - Databases
+  - Databases (for internal feature retrieval)
   - External APIs
   - Feature stores (Feast)
   - ML model services
@@ -71,12 +71,13 @@ Configuration files are located in the `config/` directory:
 
 The Orchestrator API Service supports configuring different types of endpoints through YAML configuration files. You can define endpoints that:
 
-1. **Expose Database Data**: Query database tables and return results
+1. **Internal Database Operations**: Query database tables for feature retrieval (not directly exposed via API)
    ```yaml
    endpoints:
      get_customer:
        description: "Get customer details from database"
        endpoint_type: "database"
+       internal_only: true
        data_sources:
          - name: customer_data
            type: database
@@ -119,45 +120,47 @@ The Orchestrator API Service supports configuring different types of endpoints t
        response_mapping: null  # Use feature store results directly
    ```
 
-4. **Combine Multiple Data Sources**: Orchestrate data from multiple sources
+4. **Combine Multiple Data Sources**: Orchestrate data from multiple sources (including database)
    ```yaml
    endpoints:
-     get_customer_360:
+     get_customer_profile:
        description: "Get comprehensive customer view"
        endpoint_type: "composite"
        data_sources:
-         - name: profile
+         - name: customer_data
            type: database
            operation: get_customer
            params:
              customer_id: "$request.customer_id"
-         - name: features
-           type: feast
-           operation: get_customer_features
+         - name: predictions
+           type: ml
+           operation: predict_churn
            params:
              customer_id: "$request.customer_id"
+             features: "$customer_data"
        response_mapping:
-         id: "$profile.customer_id"
-         name: "$profile.name"
-         email: "$profile.email"
-         lifetime_value: "$features.customer_lifetime_value"
-         purchase_frequency: "$features.purchase_frequency"
+         id: "$request.customer_id"
+         features: "$customer_data"
+         churn_probability: "$predictions.probability"
+         churn_risk_level: "$predictions.risk_level"
    ```
 
 For more detailed configuration examples, see the [Example README](example/README.md).
 
 ## Examples
 
-The repository includes a generic orchestrator example that demonstrates:
+The repository includes examples that demonstrate:
 
-1. **Model Scoring**: Shows integration between databases and ML services for different model types:
+1. **Model Scoring**: Shows integration with ML services using data from databases:
    - Credit risk scoring model
    - Product recommendation model
+   - Loan prediction model
 
 2. **Multi-Source Data Flow**: Demonstrates retrieving and combining data from:
-   - Database tables
+   - Database tables (for features)
    - Request parameters
    - External APIs
+   - Feature stores
 
 For more details, see the [Example README](example/README.md).
 
