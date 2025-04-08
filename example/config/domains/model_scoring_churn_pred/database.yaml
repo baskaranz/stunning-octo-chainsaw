@@ -1,0 +1,28 @@
+# Database Configuration for Churn Prediction Domain
+
+database:
+  sources:
+    default:
+      connection_string: "sqlite:///example/orchestrator_example.db"
+      pool_size: 5
+      max_overflow: 10
+      pool_timeout: 30
+      pool_recycle: 1800
+      connect_args:
+        check_same_thread: false
+
+  operations:
+    get_customer_data:
+      query: "SELECT * FROM customers WHERE customer_id = :customer_id"
+      params:
+        - customer_id
+    
+    get_subscription_data:
+      query: "SELECT * FROM subscriptions WHERE customer_id = :customer_id"
+      params:
+        - customer_id
+    
+    get_usage_metrics:
+      query: "SELECT * FROM usage_metrics WHERE customer_id = :customer_id"
+      params:
+        - customer_id

@@ -1,0 +1,19 @@
+# Sample Domain Database Configuration
+
+database:
+  sources:
+    default:
+      connection_string: "sqlite:///sample_domain.db"
+      pool_size: 5
+      max_overflow: 10
+      pool_timeout: 30
+      pool_recycle: 1800
+      connect_args:
+        check_same_thread: false
+
+  operations:
+    # Domain-specific database operations
+    get_sample_data:
+      query: "SELECT * FROM sample_table WHERE id = :id"
+      params:
+        - id

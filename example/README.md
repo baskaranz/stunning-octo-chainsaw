@@ -6,14 +6,16 @@ This example demonstrates how to use the generic orchestrator API for model scor
 
 The generic orchestrator API provides a unified interface for model scoring that can be configured without code changes. This example shows:
 
-1. How to configure and use two different model scoring endpoints:
+1. How to configure and use different model scoring endpoints:
    - Credit risk scoring model
    - Product recommendation model
+   - Loan prediction model
 
 2. How to retrieve data from multiple sources:
-   - Database tables
+   - Database tables (for internal feature retrieval)
    - Request parameters
    - External APIs
+   - Feature stores (Feast)
 
 3. How to call ML services with the appropriate request format
 
@@ -21,12 +23,14 @@ The generic orchestrator API provides a unified interface for model scoring that
 
 ### Database Layer
 - SQLite database with sample customer data, products, and transactions
+- Used internally for feature retrieval, not exposed directly via API
 - Tables for credit history, payment behavior, and product preferences
 
 ### ML Service Layer
-- Mock HTTP servers simulating two different ML models:
+- Mock HTTP servers simulating different ML models:
   - Credit risk model: Predicts default probability
   - Recommendation model: Suggests products based on user behavior
+  - Loan prediction model: Evaluates loan applications
 
 ### Configuration Layer
 - YAML files defining the data flow for each model
@@ -37,8 +41,8 @@ The generic orchestrator API provides a unified interface for model scoring that
 
 ```
 ┌──────────────┐       ┌─────────────────┐       ┌──────────────┐
-│              │       │                 │       │              │
-│   Database   │───────▶   Orchestrator  │───────▶   ML Model   │
+│   Database/   │       │                 │       │              │
+│   API/Feast   │───────▶   Orchestrator  │───────▶   ML Model   │
 │              │       │                 │       │              │
 └──────────────┘       └─────────────────┘       └──────────────┘
        ▲                        ▲
@@ -117,9 +121,9 @@ The credit risk model provides a risk assessment for a customer:
 - **Endpoint**: `/orchestrator/model_scoring/credit_risk/{customer_id}`
 - **Method**: GET
 - **Data Sources**:
-  - Customer profile from database
-  - Credit history from database
-  - Payment behavior from database
+  - Customer profile from database (internal)
+  - Credit history from database (internal)
+  - Payment behavior from feature store
 - **Output**: Risk score, risk tier, key factors, and recommended actions
 
 Example response:
@@ -157,8 +161,8 @@ The product recommendation model suggests products based on customer preferences
 - **Endpoint**: `/orchestrator/model_scoring/product_recommender/{customer_id}`
 - **Methods**: GET, POST
 - **Data Sources**:
-  - Customer profile from database
-  - Purchase history from database
+  - Customer profile from database (internal)
+  - Purchase history from database (internal)
   - Current browse context from request
 - **Output**: List of recommended products with relevance scores
 
@@ -199,23 +203,37 @@ Example response:
 ## Implementation Files
 
 - `run_example.py`: All-in-one script to set up and run the example
-- `database_model.py`: Database schema and sample data
+- `database_model.py`: Database schema and sample data for internal feature retrieval
 - `mock_ml_services.py`: Simulates the ML models
-- `database_extensions.py`: Database client extensions for the example
+- `database_extensions.py`: Database client extensions for feature retrieval
 - `api_client.py`: Client-side example of API usage
 - `model_scoring_client.py`: Specialized client for model scoring endpoints
 
 ### Configuration Files
-- `config/domains/model_scoring_credit_risk.yaml`: Credit risk model configuration
-- `config/domains/model_scoring_product_recommender.yaml`: Product recommendation configuration
-- `config/integrations/ml.yaml`: ML service connection settings
+Each domain has its own dedicated configuration folder with its specific database and integration settings:
+
+- `config/domains/model_scoring_credit_risk.yaml`: Main domain configuration
+  - `config/domains/model_scoring_credit_risk/database.yaml`: Domain-specific database configuration
+  - `config/domains/model_scoring_credit_risk/integrations/ml.yaml`: Domain-specific ML service settings
+
+- `config/domains/model_scoring_product_recommender.yaml`: Main domain configuration  
+  - `config/domains/model_scoring_product_recommender/database.yaml`: Domain-specific database configuration
+  - `config/domains/model_scoring_product_recommender/integrations/ml.yaml`: Domain-specific ML service settings
+
+- `config/domains/model_scoring_loan_pred.yaml`: Main domain configuration
+  - `config/domains/model_scoring_loan_pred/database.yaml`: Domain-specific database configuration
+  - `config/domains/model_scoring_loan_pred/integrations/ml.yaml`: Domain-specific ML service settings
+
+- `config/domains/model_scoring_churn_pred.yaml`: Main domain configuration
+  - `config/domains/model_scoring_churn_pred/database.yaml`: Domain-specific database configuration
+  - `config/domains/model_scoring_churn_pred/integrations/ml.yaml`: Domain-specific ML service settings
 
 ## How It Works
 
 The orchestrator works by:
 
 1. Reading the configuration for the requested model
-2. Fetching data from the configured sources
+2. Fetching data from the configured sources (including database for features)
 3. Mapping the data to the format expected by the ML model
 4. Calling the ML model with the prepared features
 5. Mapping the response to the defined output format
@@ -226,9 +244,28 @@ All of this happens without needing to write model-specific code in the API serv
 
 To add a new model to the orchestrator:
 
-1. Create a configuration file in `config/domains/model_scoring_your_model.yaml`
-2. Define the data sources, feature mappings, and response format
-3. Implement any necessary database methods (if not already available)
-4. Restart the application to load the new configuration
+1. Create a domain configuration folder:
+   ```
+   mkdir -p config/domains/model_scoring_your_model/integrations
+   ```
+
+2. Create the main domain configuration file:
+   ```
+   config/domains/model_scoring_your_model.yaml
+   ```
+
+3. Create domain-specific database configuration:
+   ```
+   config/domains/model_scoring_your_model/database.yaml
+   ```
+
+4. Create domain-specific integration configurations:
+   ```
+   config/domains/model_scoring_your_model/integrations/ml.yaml
+   ```
+
+5. Configure feature mappings and response format in the main domain configuration
+
+6. Restart the application to load the new configuration
 
 No code changes are required to the orchestrator API itself.

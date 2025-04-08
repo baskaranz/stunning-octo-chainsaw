@@ -75,16 +75,42 @@ class ConfigLoader:
             The domain configuration or an empty dict if not found
         """
         return self.load_yaml_file(f"domains/{domain}.yaml")
+        
+    def load_database_config(self, domain: Optional[str] = None) -> Dict[str, Any]:
+        """Load database configuration.
+        
+        Args:
+            domain: The domain name (if domain-specific database)
+            
+        Returns:
+            The database configuration or an empty dict if not found
+        """
+        if domain:
+            # First try domain-specific database config
+            domain_db_config = self.load_yaml_file(f"domains/{domain}/database.yaml")
+            if domain_db_config:
+                return domain_db_config
+                
+        # Fallback to global database config (backward compatibility)
+        return self.load_yaml_file("database.yaml")
     
-    def load_integration_config(self, integration_type: str) -> Dict[str, Any]:
+    def load_integration_config(self, integration_type: str, domain: Optional[str] = None) -> Dict[str, Any]:
         """Load integration-specific configuration.
         
         Args:
             integration_type: The integration type (e.g., "api_sources")
+            domain: The domain name (if domain-specific integration)
             
         Returns:
             The integration configuration or an empty dict if not found
         """
+        if domain:
+            # First try domain-specific integration config
+            domain_config = self.load_yaml_file(f"domains/{domain}/integrations/{integration_type}.yaml")
+            if domain_config:
+                return domain_config
+                
+        # Fallback to global integration config (backward compatibility)
         return self.load_yaml_file(f"integrations/{integration_type}.yaml")
     
     def list_domain_configs(self) -> List[str]:

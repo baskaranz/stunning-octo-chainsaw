@@ -1,0 +1,19 @@
+# Sample Domain API Sources Configuration
+
+api:
+  sources:
+    # Domain-specific API source configuration
+    sample_api:
+      base_url: "http://api.sampledomain.com"
+      timeout: 10
+      headers:
+        Content-Type: "application/json"
+        Authorization: "Bearer $ENV[SAMPLE_API_TOKEN]"
+      
+      # Domain-specific API operations
+      operations:
+        get_data:
+          method: GET
+          path: "/resource/{id}"
+          path_params:
+            - id

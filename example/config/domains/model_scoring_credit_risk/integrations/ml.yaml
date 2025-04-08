@@ -1,0 +1,10 @@
+# ML service configurations for the credit risk model
+sources:
+  credit_risk_model:
+    base_url: "http://localhost:5003"
+    models:
+      default:
+        endpoint: "/predict"
+        timeout: 30
+        headers:
+          Content-Type: "application/json"
