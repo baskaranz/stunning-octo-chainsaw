@@ -345,7 +345,287 @@ endpoints:
         risk_level: "$churn_prediction.risk_level"
 ```
 
-### Example of ML Endpoint in a Composite Flow
+## Multiple Endpoints in a Domain
+
+A single domain can contain multiple endpoints that serve different but related purposes. This is particularly useful for:
+
+1. Offering multiple versions of the same model
+2. Providing different prediction types within the same domain
+3. Combining related model functionalities under one domain
+
+### Example: Multiple Model Versions
+
+Here's an example of a domain with multiple endpoints for different versions of a churn prediction model:
+
+```yaml
+# config/domains/churn_prediction.yaml
+domain_id: churn_prediction
+description: "Customer churn prediction models"
+
+endpoints:
+  # Production model endpoint (v1)
+  predict_v1:
+    description: "Current production churn prediction model (v1)"
+    endpoint_type: "composite"
+    data_sources:
+      - name: customer_data
+        type: database
+        source_id: default
+        operation: get_customer_features
+        params:
+          customer_id: "$request.path_params.customer_id"
+      
+      - name: churn_prediction
+        type: ml
+        source_id: churn_model_v1
+        operation: predict
+        params:
+          features:
+            customer_id: "$request.path_params.customer_id"
+            tenure: "$customer_data.tenure_months"
+            monthly_charges: "$customer_data.monthly_bill"
+            contract_type: "$customer_data.contract_type"
+    
+    response_mapping:
+      customer_id: "$request.path_params.customer_id"
+      model_version: "v1"
+      prediction:
+        probability: "$churn_prediction.probability"
+        risk_level: "$churn_prediction.risk_level"
+  
+  # Beta/Staging model endpoint (v2)
+  predict_v2:
+    description: "Beta churn prediction model with improved accuracy (v2)"
+    endpoint_type: "composite"
+    data_sources:
+      - name: customer_data
+        type: database
+        source_id: default
+        operation: get_customer_features
+        params:
+          customer_id: "$request.path_params.customer_id"
+      
+      - name: usage_data
+        type: database
+        source_id: default
+        operation: get_usage_metrics
+        params:
+          customer_id: "$request.path_params.customer_id"
+      
+      - name: churn_prediction
+        type: ml
+        source_id: churn_model_v2
+        operation: predict
+        params:
+          features:
+            customer_id: "$request.path_params.customer_id"
+            tenure: "$customer_data.tenure_months"
+            monthly_charges: "$customer_data.monthly_bill"
+            contract_type: "$customer_data.contract_type"
+            # Additional features used in v2 model
+            login_frequency: "$usage_data.logins_last_month"
+            feature_usage: "$usage_data.feature_usage_score"
+            support_tickets: "$usage_data.support_tickets"
+    
+    response_mapping:
+      customer_id: "$request.path_params.customer_id"
+      model_version: "v2"
+      prediction:
+        probability: "$churn_prediction.probability"
+        risk_level: "$churn_prediction.risk_level"
+        confidence: "$churn_prediction.confidence"
+      explanations:
+        key_factors: "$churn_prediction.feature_importance"
+  
+  # Experimental model endpoint (v3)
+  predict_v3:
+    description: "Experimental churn prediction model with ML explanations (v3)"
+    endpoint_type: "composite"
+    data_sources:
+      - name: customer_data
+        type: database
+        source_id: default
+        operation: get_customer_features
+        params:
+          customer_id: "$request.path_params.customer_id"
+      
+      - name: usage_data
+        type: database
+        source_id: default
+        operation: get_usage_metrics
+        params:
+          customer_id: "$request.path_params.customer_id"
+      
+      - name: sentiment_data
+        type: api
+        source_id: sentiment_api
+        operation: get_customer_sentiment
+        params:
+          customer_id: "$request.path_params.customer_id"
+      
+      - name: churn_prediction
+        type: ml
+        source_id: churn_model_v3
+        operation: predict
+        params:
+          features:
+            customer_id: "$request.path_params.customer_id"
+            tenure: "$customer_data.tenure_months"
+            monthly_charges: "$customer_data.monthly_bill"
+            contract_type: "$customer_data.contract_type"
+            login_frequency: "$usage_data.logins_last_month"
+            feature_usage: "$usage_data.feature_usage_score"
+            support_tickets: "$usage_data.support_tickets"
+            sentiment_score: "$sentiment_data.sentiment_score"
+            sentiment_trend: "$sentiment_data.sentiment_trend"
+    
+    response_mapping:
+      customer_id: "$request.path_params.customer_id"
+      model_version: "v3"
+      prediction:
+        probability: "$churn_prediction.probability"
+        risk_level: "$churn_prediction.risk_level"
+        confidence: "$churn_prediction.confidence"
+      explanations:
+        key_factors: "$churn_prediction.feature_importance"
+        counterfactual: "$churn_prediction.counterfactual"
+        shap_values: "$churn_prediction.shap_values"
+  
+  # Comparative endpoint (all versions)
+  compare:
+    description: "Compare predictions from all model versions"
+    endpoint_type: "composite"
+    data_sources:
+      # First get all the data needed for any model
+      - name: customer_data
+        type: database
+        source_id: default
+        operation: get_customer_features
+        params:
+          customer_id: "$request.path_params.customer_id"
+      
+      - name: usage_data
+        type: database
+        source_id: default
+        operation: get_usage_metrics
+        params:
+          customer_id: "$request.path_params.customer_id"
+      
+      - name: sentiment_data
+        type: api
+        source_id: sentiment_api
+        operation: get_customer_sentiment
+        params:
+          customer_id: "$request.path_params.customer_id"
+      
+      # Get predictions from all models
+      - name: v1_prediction
+        type: ml
+        source_id: churn_model_v1
+        operation: predict
+        params:
+          features:
+            customer_id: "$request.path_params.customer_id"
+            tenure: "$customer_data.tenure_months"
+            monthly_charges: "$customer_data.monthly_bill"
+            contract_type: "$customer_data.contract_type"
+      
+      - name: v2_prediction
+        type: ml
+        source_id: churn_model_v2
+        operation: predict
+        params:
+          features:
+            customer_id: "$request.path_params.customer_id"
+            tenure: "$customer_data.tenure_months"
+            monthly_charges: "$customer_data.monthly_bill"
+            contract_type: "$customer_data.contract_type"
+            login_frequency: "$usage_data.logins_last_month"
+            feature_usage: "$usage_data.feature_usage_score"
+            support_tickets: "$usage_data.support_tickets"
+      
+      - name: v3_prediction
+        type: ml
+        source_id: churn_model_v3
+        operation: predict
+        params:
+          features:
+            customer_id: "$request.path_params.customer_id"
+            tenure: "$customer_data.tenure_months"
+            monthly_charges: "$customer_data.monthly_bill"
+            contract_type: "$customer_data.contract_type"
+            login_frequency: "$usage_data.logins_last_month"
+            feature_usage: "$usage_data.feature_usage_score"
+            support_tickets: "$usage_data.support_tickets"
+            sentiment_score: "$sentiment_data.sentiment_score"
+            sentiment_trend: "$sentiment_data.sentiment_trend"
+    
+    response_mapping:
+      customer_id: "$request.path_params.customer_id"
+      customer_profile:
+        tenure: "$customer_data.tenure_months"
+        monthly_charges: "$customer_data.monthly_bill"
+        contract_type: "$customer_data.contract_type"
+      predictions:
+        v1:
+          probability: "$v1_prediction.probability"
+          risk_level: "$v1_prediction.risk_level"
+        v2:
+          probability: "$v2_prediction.probability"
+          risk_level: "$v2_prediction.risk_level"
+          confidence: "$v2_prediction.confidence"
+          key_factors: "$v2_prediction.feature_importance"
+        v3:
+          probability: "$v3_prediction.probability"
+          risk_level: "$v3_prediction.risk_level"
+          confidence: "$v3_prediction.confidence"
+          key_factors: "$v3_prediction.feature_importance"
+      model_analysis:
+        agreement: "$v1_prediction.risk_level == $v2_prediction.risk_level && $v2_prediction.risk_level == $v3_prediction.risk_level"
+        max_difference: "Math.max(Math.abs($v1_prediction.probability - $v2_prediction.probability), Math.abs($v2_prediction.probability - $v3_prediction.probability), Math.abs($v1_prediction.probability - $v3_prediction.probability))"
+```
+
+### ML Service Definition for Multiple Models
+
+In the domain-specific ML configuration file, you would define the different model versions:
+
+```yaml
+# config/domains/churn_prediction/integrations/ml_config.yaml
+ml:
+  sources:
+    churn_model_v1:
+      base_url: "http://model-service.example.com/models"
+      models:
+        default:
+          endpoint: "/churn/v1/predictions"
+          method: "POST"
+          timeout: 10
+          headers:
+            Content-Type: "application/json"
+    
+    churn_model_v2:
+      base_url: "http://model-service.example.com/models"
+      models:
+        default:
+          endpoint: "/churn/v2/predictions"
+          method: "POST"
+          timeout: 15
+          headers:
+            Content-Type: "application/json"
+    
+    churn_model_v3:
+      base_url: "http://model-service-beta.example.com/models"  # Could be on a different server
+      models:
+        default:
+          endpoint: "/churn/v3/predictions"
+          method: "POST"
+          timeout: 20
+          headers:
+            Content-Type: "application/json"
+            X-API-KEY: "$ENV[BETA_API_KEY]"  # Different credentials for beta
+```
+
+## Example of ML Endpoint in a Composite Flow
 
 In a complete data flow, ML endpoints often receive features prepared from other data sources:
 
@@ -479,6 +759,8 @@ Key features:
 4. **Set reasonable timeouts** - Configure appropriate timeouts for API and external service sources
 5. **Start simple** - Begin with simple endpoint types before creating complex composite endpoints
 6. **Layer your data sources** - For complex orchestrations, consider building intermediate endpoints that can be used by other endpoints
+7. **Version your models** - When adding new model versions, keep the old versions available and use explicit endpoint names
+8. **Standardize response mapping** - Keep a consistent response structure across different model versions for easier client integration
 
 ## Complete Example
 
