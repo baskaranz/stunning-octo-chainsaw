@@ -330,6 +330,28 @@ def test_domains_endpoint(api_port):
             print(f"Error response: {response.text}")
     except requests.RequestException as e:
         print(f"Request error: {e}")
+        
+    # Also test the endpoints directly
+    print("\nTesting direct endpoint access...")
+    endpoints = [
+        f"http://localhost:{api_port}/orchestrator/iris_example/samples?limit=1",
+        f"http://localhost:{api_port}/orchestrator/iris_example/predict/1",
+        f"http://localhost:{api_port}/orchestrator/iris_example/predict_local/1",
+        f"http://localhost:{api_port}/orchestrator/iris_example/compare/1"
+    ]
+    
+    for endpoint in endpoints:
+        try:
+            print(f"\nTrying: {endpoint}")
+            response = requests.get(endpoint)
+            print(f"Status: {response.status_code}")
+            if response.status_code == 200:
+                print("SUCCESS! Endpoint is working")
+                print(f"Response body: {response.text[:100]}...")
+            else:
+                print(f"Error: {response.text}")
+        except requests.RequestException as e:
+            print(f"Error: {e}")
 
 def main():
     """Main function"""
