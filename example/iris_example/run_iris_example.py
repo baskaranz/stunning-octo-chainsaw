@@ -6,7 +6,6 @@ import subprocess
 import sys
 import time
 import signal
-import threading
 import requests
 import argparse
 from iris_database import setup_database, get_iris_by_id, get_iris_sample
@@ -14,10 +13,10 @@ from iris_database import setup_database, get_iris_by_id, get_iris_sample
 # Set up paths
 EXAMPLE_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(os.path.dirname(EXAMPLE_DIR))
-CONFIG_DIR = os.path.join(EXAMPLE_DIR, 'config')
-MODEL_PATH = os.path.join(EXAMPLE_DIR, 'models', 'iris_model.pkl')
+MODELS_DIR = os.path.join(EXAMPLE_DIR, 'models')
+MODEL_PATH = os.path.join(MODELS_DIR, 'iris_model.pkl')
 
-# Model server process
+# Global variables
 model_server_process = None
 
 def signal_handler(sig, frame):
@@ -34,19 +33,67 @@ def signal_handler(sig, frame):
 
 def setup():
     """Set up the example environment"""
+    print("📦 Setting up the Iris Example environment...")
+    
     # Ensure model file exists
     if not os.path.exists(MODEL_PATH):
         print(f"Error: Model file not found at {MODEL_PATH}")
         print("Please make sure you've copied the iris_model.pkl file to this location.")
         sys.exit(1)
     
-    # Create config directory if it doesn't exist
-    os.makedirs(os.path.join(CONFIG_DIR, 'domains', 'iris_example', 'integrations'), exist_ok=True)
+    # Create database directory if needed
+    os.makedirs(os.path.dirname(MODEL_PATH), exist_ok=True)
     
     # Set up the database
-    print("Setting up the iris database...")
+    print("🔧 Creating the iris database...")
     setup_database()
-    print("Database setup complete!")
+    print("✅ Database setup complete!")
+    
+    # Copy config files to main config directory
+    print("🔧 Installing configuration files...")
+    install_config_files()
+    print("✅ Configuration installed in main config directory.")
+    
+    # Display next steps
+    print("\n🎉 Setup complete! Next steps:")
+    print("1. Start the model server:")
+    print("   python example/iris_example/run_iris_example.py --server")
+    print("2. Start the orchestrator service (or restart it if already running):")
+    print("   python main.py")
+    print("3. Test the endpoints:")
+    print("   python example/iris_example/run_iris_example.py --test-orchestrator")
+    print("\nTo check if the orchestrator has loaded the iris domain:")
+    print("   python example/iris_example/run_iris_example.py --check-orchestrator")
+
+def install_config_files():
+    """Copy configuration files to the main config directory"""
+    # Create domain directory structure in main config
+    domain_dir = os.path.join(PROJECT_ROOT, 'config', 'domains', 'iris_example')
+    domain_int_dir = os.path.join(domain_dir, 'integrations')
+    os.makedirs(domain_int_dir, exist_ok=True)
+    
+    # Define source and destination paths
+    example_config_dir = os.path.join(EXAMPLE_DIR, 'config')
+    src_domain_yaml = os.path.join(example_config_dir, 'domains', 'iris_example.yaml')
+    src_db_yaml = os.path.join(example_config_dir, 'domains', 'iris_example', 'database.yaml')
+    src_ml_yaml = os.path.join(example_config_dir, 'domains', 'iris_example', 'integrations', 'ml_config.yaml')
+    
+    dst_domain_yaml = os.path.join(PROJECT_ROOT, 'config', 'domains', 'iris_example.yaml')
+    dst_db_yaml = os.path.join(domain_dir, 'database.yaml')
+    dst_ml_yaml = os.path.join(domain_int_dir, 'ml_config.yaml')
+    
+    # Copy files if they exist
+    for src, dst in [(src_domain_yaml, dst_domain_yaml), 
+                     (src_db_yaml, dst_db_yaml), 
+                     (src_ml_yaml, dst_ml_yaml)]:
+        if os.path.exists(src):
+            with open(src, 'r') as src_file:
+                content = src_file.read()
+                
+            with open(dst, 'w') as dst_file:
+                dst_file.write(content)
+            
+            print(f"Copied {os.path.basename(src)} to {os.path.relpath(dst, PROJECT_ROOT)}")
 
 def start_model_server(model_port):
     """Start the model server in a subprocess"""
@@ -147,7 +194,7 @@ def test_orchestrator_prediction(api_port):
     except requests.RequestException as e:
         print(f"Error calling orchestrator: {str(e)}")
         print("Make sure the orchestrator service is running. You can start it with:")
-        print(f"  python main.py --config example/iris_example/config --port {api_port}")
+        print(f"  python main.py --port {api_port}")
 
 def test_model_comparison(api_port):
     """Test the comparison endpoint that uses both loading methods"""
@@ -160,7 +207,6 @@ def test_model_comparison(api_port):
     print(f"Using flower ID: {flower_id} (Species: {sample['species']})")
     
     # Make a request to the orchestrator comparison endpoint with the correct API path
-    # We need to access the 'compare' operation on the iris_example domain
     try:
         response = requests.get(
             f'http://localhost:{api_port}/orchestrator/iris_example/compare/{flower_id}'
@@ -184,23 +230,53 @@ def test_model_comparison(api_port):
     except requests.RequestException as e:
         print(f"Error calling orchestrator: {str(e)}")
         print("Make sure the orchestrator service is running. You can start it with:")
-        print(f"  python main.py --config example/iris_example/config --port {api_port}")
+        print(f"  python main.py --port {api_port}")
+
+def check_orchestrator(api_port):
+    """Check if the orchestrator is running and has loaded the iris domain"""
+    try:
+        # Try to get list of domains
+        response = requests.get(f'http://localhost:{api_port}/orchestrator/domains')
+        if response.status_code == 200:
+            domains = response.json()
+            if 'iris_example' in domains:
+                print("✅ Orchestrator is running and has loaded the iris_example domain!")
+                return True
+            else:
+                print("❌ Orchestrator is running but has not loaded the iris_example domain.")
+                print("   This may be because:")
+                print("   1. You need to run the setup step first: python example/iris_example/run_iris_example.py --setup")
+                print("   2. You need to restart the orchestrator to load the new configuration")
+                print("      python main.py")
+                return False
+        else:
+            print("❌ Orchestrator API responded but returned an error.")
+            return False
+    except requests.RequestException:
+        print("❌ Orchestrator does not appear to be running.")
+        print(f"   Please start it with: python main.py --port {api_port}")
+        return False
 
 def show_help():
     """Display help information"""
     print("\nIris Example Usage:")
-    print("  1. Start the model server and orchestrator separately:")
-    print("     - Run this script to start the model server:")
+    print("  1. Setup and configuration:")
+    print("     - Set up the example (database and configs):")
+    print("       python example/iris_example/run_iris_example.py --setup")
+    print("  2. Run the components:")
+    print("     - Start the model server:")
     print("       python example/iris_example/run_iris_example.py --server [--model-port PORT]")
-    print("     - In another terminal, start the generic orchestrator API with the Iris config:")
-    print("       python main.py --config example/iris_example/config [--port PORT]")
-    print("  2. Test the endpoints:")
+    print("     - In another terminal, make sure the standard orchestrator API is running:")
+    print("       python main.py [--port PORT]")
+    print("  3. Test the endpoints:")
     print("     - Direct model endpoint:")
     print("       python example/iris_example/run_iris_example.py --test-direct [--model-port PORT]")
     print("     - Orchestrator endpoint:")
     print("       python example/iris_example/run_iris_example.py --test-orchestrator [--api-port PORT]")
     print("     - Comparison endpoint:")
     print("       python example/iris_example/run_iris_example.py --test-comparison [--api-port PORT]")
+    print("  4. Check if orchestrator has loaded the iris domain:")
+    print("       python example/iris_example/run_iris_example.py --check-orchestrator [--api-port PORT]")
 
 def main():
     """Main function"""
@@ -209,53 +285,28 @@ def main():
     
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='Iris Example Runner')
+    parser.add_argument('--setup', action='store_true', help='Set up the example environment')
     parser.add_argument('--server', action='store_true', help='Start the model server')
     parser.add_argument('--test-direct', action='store_true', help='Test the direct model endpoint')
     parser.add_argument('--test-orchestrator', action='store_true', help='Test the orchestrator endpoint')
     parser.add_argument('--test-comparison', action='store_true', help='Test the model comparison endpoint')
-    parser.add_argument('--all', action='store_true', help='Run everything: start server, start orchestrator, and test all endpoints')
+    parser.add_argument('--check-orchestrator', action='store_true', help='Check if orchestrator is running with iris domain')
     parser.add_argument('--api-port', type=int, default=8000, help='Port for the Orchestrator API Service (default: 8000)')
     parser.add_argument('--model-port', type=int, default=8502, help='Port for the Iris model server (default: 8502)')
     args = parser.parse_args()
-    
-    # Ensure setup is done
-    setup()
     
     # Parse the arguments for ports
     model_port = args.model_port
     api_port = args.api_port
     
-    # Run everything if --all is specified
-    if args.all:
-        start_model_server(model_port)
-        
-        # Start the orchestrator in a subprocess
-        print(f"Starting the generic Orchestrator API Service on port {api_port}...")
-        orchestrator_process = subprocess.Popen(
-            [sys.executable, os.path.join(PROJECT_ROOT, 'main.py'), 
-             f'--port={api_port}', f'--config=example/iris_example/config']
-        )
-        
-        # Wait a moment for the orchestrator to start
-        time.sleep(3)
-        
-        # Run all tests
-        test_direct_prediction(model_port)
-        test_orchestrator_prediction(api_port)
-        test_model_comparison(api_port)
-        
-        # Keep the script running
-        print("\nAll tests completed. Services are still running.")
-        print("Press Ctrl+C to stop all services.")
-        try:
-            while True:
-                time.sleep(1)
-        except KeyboardInterrupt:
-            print("\nShutting down...")
-            if orchestrator_process:
-                orchestrator_process.terminate()
-            if model_server_process:
-                model_server_process.terminate()
+    # Set up if requested
+    if args.setup:
+        setup()
+        return
+    
+    # Check orchestrator
+    if args.check_orchestrator:
+        check_orchestrator(api_port)
         return
     
     # Start the model server if requested
@@ -278,11 +329,13 @@ def main():
     
     # Test orchestrator prediction
     if args.test_orchestrator:
-        test_orchestrator_prediction(api_port)
+        if check_orchestrator(api_port):
+            test_orchestrator_prediction(api_port)
     
     # Test comparison
     if args.test_comparison:
-        test_model_comparison(api_port)
+        if check_orchestrator(api_port):
+            test_model_comparison(api_port)
     
     # If no specific action is requested, show help
     if len(sys.argv) == 1:

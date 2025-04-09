@@ -1,15 +1,16 @@
-# Generic Orchestrator API Example
+# Generic Orchestrator API Examples
 
-This example demonstrates how to use the generic orchestrator API for model scoring with different data sources and model types.
+This directory contains examples demonstrating how to use the generic orchestrator API for model scoring with different data sources and model types.
 
 ## Overview
 
-The generic orchestrator API provides a unified interface for model scoring that can be configured without code changes. This example shows:
+The generic orchestrator API provides a unified interface for model scoring that can be configured without code changes. These examples show:
 
 1. How to configure and use different model scoring endpoints:
    - Credit risk scoring model
    - Product recommendation model
    - Loan prediction model
+   - Iris flower classification model
 
 2. How to retrieve data from multiple sources:
    - Database tables (for internal feature retrieval)
@@ -17,7 +18,11 @@ The generic orchestrator API provides a unified interface for model scoring that
    - External APIs
    - Feature stores (Feast)
 
-3. How to call ML services with the appropriate request format
+3. How to call ML services with the appropriate request format:
+   - HTTP API models
+   - Local artifact models
+   - Docker models
+   - ECR models
 
 ## Components
 
@@ -200,7 +205,11 @@ Example response:
 }
 ```
 
-## Implementation Files
+## Available Examples
+
+### 1. Model Scoring Example
+
+The main example demonstrating multiple model scoring endpoints:
 
 - `run_example.py`: All-in-one script to set up and run the example
 - `database_model.py`: Database schema and sample data for internal feature retrieval
@@ -208,6 +217,15 @@ Example response:
 - `database_extensions.py`: Database client extensions for feature retrieval
 - `api_client.py`: Client-side example of API usage
 - `model_scoring_client.py`: Specialized client for model scoring endpoints
+
+### 2. Iris Classification Example
+
+Located in the `iris_example` subdirectory, this example demonstrates:
+- Database-to-ML pattern with scikit-learn models
+- Multiple model loading strategies (HTTP and local artifact)
+- Comparison of predictions from different sources
+
+To run this example, see the instructions in `example/iris_example/README.md`.
 
 ### Configuration Files
 Each domain has its own dedicated configuration folder with its specific database and integration settings:
