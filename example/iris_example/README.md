@@ -50,11 +50,13 @@ python example/iris_example/run_iris_example.py --server
 
 ### Step 3: Start the Orchestrator
 
-Start the Orchestrator API Service in another terminal:
+Start the generic Orchestrator API Service in another terminal, pointing it to use the Iris example configuration:
 
 ```bash
 python main.py --config example/iris_example/config
 ```
+
+This uses the standard orchestrator API but with our Iris-specific configuration files.
 
 ### Step 4: Test the endpoints
 
