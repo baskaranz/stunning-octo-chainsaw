@@ -213,15 +213,53 @@ def create_app() -> FastAPI:
             except Exception as e:
                 logger.error(f"Error inspecting DB config: {str(e)}")
             
-            # Try to run
+            # Try direct database access
+            try:
+                # Get connection string
+                connection_string = db_config.get('database', {}).get('sources', {}).get('default', {}).get('connection_string', '')
+                logger.info(f"Using connection string: {connection_string}")
+                
+                if connection_string.startswith('sqlite:///'):
+                    db_path = connection_string[10:]  # Remove sqlite:///
+                    logger.info(f"Extracted DB path: {db_path}")
+                    
+                    # Check if file exists
+                    import os
+                    db_exists = os.path.exists(db_path)
+                    logger.info(f"Database exists: {db_exists}")
+                    
+                    if db_exists:
+                        # Try direct query
+                        import sqlite3
+                        conn = sqlite3.connect(db_path)
+                        cursor = conn.cursor()
+                        cursor.execute("SELECT * FROM iris_flowers WHERE id = ?", (flower_id,))
+                        row = cursor.fetchone()
+                        conn.close()
+                        
+                        if row:
+                            logger.info(f"Found row in database: {row}")
+                        else:
+                            logger.warning(f"No row found for ID {flower_id}")
+                    else:
+                        logger.error(f"Database file not found at {db_path}")
+            except Exception as e:
+                logger.error(f"Error accessing database directly: {str(e)}")
+            
+            # Try to run with extra detailed params
+            logger.info(f"About to process with domain=iris_example, operation=predict, flower_id={flower_id}")
+            
+            request_data = {
+                "path_params": {"flower_id": str(flower_id)},
+                "query_params": {},
+                "body": {}
+            }
+            logger.info(f"Request data: {request_data}")
+            
             result = await processor.process(
                 domain="iris_example",
                 operation="predict",
-                request_data={
-                    "path_params": {"flower_id": str(flower_id)},
-                    "query_params": {},
-                    "body": {}
-                }
+                request_data=request_data
             )
             return result
         except Exception as e:

@@ -181,14 +181,50 @@ def test_orchestrator_prediction(api_port):
     print("\nTesting orchestrator prediction...")
     
     # Get a sample iris flower ID to test with
-    sample = get_iris_sample(1)[0]
-    flower_id = sample['id']
+    try:
+        sample = get_iris_sample(1)[0]
+        flower_id = sample['id']
+        species = sample['species']
+        print(f"Using flower ID: {flower_id} (Species: {species})")
+    except Exception as e:
+        print(f"❌ Error getting sample from database: {str(e)}")
+        print("Falling back to ID 1")
+        flower_id = 1
+        species = "unknown"
     
-    print(f"Using flower ID: {flower_id} (Species: {sample['species']})")
+    # Additional diagnostics
+    print(f"Database path: {IRIS_DB_PATH}")
+    print(f"Database exists: {os.path.exists(IRIS_DB_PATH)}")
+    
+    if os.path.exists(IRIS_DB_PATH):
+        try:
+            # Direct database check
+            import sqlite3
+            conn = sqlite3.connect(IRIS_DB_PATH)
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='iris_flowers'")
+            has_table = cursor.fetchone()[0] > 0
+            print(f"Database has iris_flowers table: {has_table}")
+            
+            if has_table:
+                cursor.execute("SELECT COUNT(*) FROM iris_flowers")
+                row_count = cursor.fetchone()[0]
+                print(f"Table has {row_count} rows")
+                
+                # Check for the specific ID
+                cursor.execute("SELECT * FROM iris_flowers WHERE id = ?", (flower_id,))
+                row = cursor.fetchone()
+                if row:
+                    print(f"Found row with ID {flower_id}: {row}")
+                else:
+                    print(f"❌ No row found with ID {flower_id}")
+            conn.close()
+        except Exception as e:
+            print(f"❌ Error checking database directly: {str(e)}")
     
     # Make a request to the orchestrator using the correct API path
     try:
-        print(f"Sending request to: http://localhost:{api_port}/orchestrator/iris_example/predict/{flower_id}")
+        print(f"\nSending request to: http://localhost:{api_port}/orchestrator/iris_example/predict/{flower_id}")
         response = requests.get(
             f'http://localhost:{api_port}/orchestrator/iris_example/predict/{flower_id}'
         )
@@ -197,10 +233,31 @@ def test_orchestrator_prediction(api_port):
         
         if response.status_code == 200:
             result = response.json()
-            print("Orchestrator response:")
+            print("Orchestrator response (full):")
+            print(f"{result}")
+            
+            # Pretty print the important parts
+            print("\nOrchestrator response (important parts):")
             print(f"  Features: {result.get('features', {})}")
-            print(f"  Predicted species: {result.get('prediction', {}).get('class_name', 'unknown')}")
-            print(f"  Probabilities: {result.get('prediction', {}).get('probabilities', {})}")
+            
+            # Handle different response formats
+            prediction = result.get('prediction', {})
+            if isinstance(prediction, dict):
+                print(f"  Predicted species: {prediction.get('class_name', 'unknown')}")
+                print(f"  Probabilities: {prediction.get('probabilities', {})}")
+            else:
+                print(f"  Prediction (raw): {prediction}")
+            
+            # Check for other fields
+            for key, value in result.items():
+                if key not in ['features', 'prediction']:
+                    print(f"  {key}: {value}")
+            
+            # Check for error information
+            if 'status' in result and result.get('status') == 'error':
+                print(f"\n❌ Error in response: {result.get('message', 'Unknown error')}")
+                if 'traceback' in result:
+                    print(f"Traceback: {result.get('traceback')}")
         elif response.status_code == 404:
             print("❌ Endpoint not found. This suggests the iris_example domain is not properly loaded.")
             print("   Please try the following steps:")
