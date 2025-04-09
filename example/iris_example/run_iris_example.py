@@ -41,11 +41,14 @@ def setup():
         print("Please make sure you've copied the iris_model.pkl file to this location.")
         sys.exit(1)
     
-    # Create database directory if needed
+    # Create model and database directories if needed
     os.makedirs(os.path.dirname(MODEL_PATH), exist_ok=True)
     
+    # Import here to get the updated path
+    from iris_database import IRIS_DB_PATH
+    
     # Set up the database
-    print("🔧 Creating the iris database...")
+    print(f"🔧 Creating the iris database at {IRIS_DB_PATH}...")
     setup_database()
     print("✅ Database setup complete!")
     

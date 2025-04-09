@@ -3,13 +3,13 @@ Iris Database Setup and Utilities
 """
 import os
 import sqlite3
-import pandas as pd
-import numpy as np
-from sklearn.datasets import load_iris
-from typing import Dict, Any, List, Optional, Tuple
+import datetime
+from typing import Dict, Any, List, Optional
 
-# Database file path
-IRIS_DB_PATH = os.environ.get('IRIS_DB_PATH', 'iris_example.db')
+# Database file path - using the same path specified in the config file
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+DEFAULT_DB_PATH = os.path.join(SCRIPT_DIR, 'iris_example.db')
+IRIS_DB_PATH = os.environ.get('IRIS_DB_PATH', DEFAULT_DB_PATH)
 
 def setup_database():
     """Create the database with sample iris data"""
@@ -34,52 +34,37 @@ def setup_database():
     cursor.execute("SELECT COUNT(*) FROM iris_flowers")
     count = cursor.fetchone()[0]
     
-    # If table is empty, populate with iris dataset
+    # If table is empty, populate with hardcoded iris dataset (simplified subset)
     if count == 0:
-        # Load the iris dataset
-        iris = load_iris()
-        iris_df = pd.DataFrame(data=np.c_[iris['data'], iris['target']],
-                              columns=iris['feature_names'] + ['target'])
+        # Hardcoded sample of the iris dataset (3 samples of each species)
+        iris_samples = [
+            # setosa samples
+            (5.1, 3.5, 1.4, 0.2, 'setosa'),
+            (4.9, 3.0, 1.4, 0.2, 'setosa'),
+            (4.7, 3.2, 1.3, 0.2, 'setosa'),
+            
+            # versicolor samples
+            (6.4, 3.2, 4.5, 1.5, 'versicolor'),
+            (6.9, 3.1, 4.9, 1.5, 'versicolor'),
+            (5.5, 2.3, 4.0, 1.3, 'versicolor'),
+            
+            # virginica samples
+            (6.3, 3.3, 6.0, 2.5, 'virginica'),
+            (5.8, 2.7, 5.1, 1.9, 'virginica'),
+            (7.1, 3.0, 5.9, 2.1, 'virginica')
+        ]
         
-        # Rename columns to match our schema
-        iris_df = iris_df.rename(columns={
-            'sepal length (cm)': 'sepal_length',
-            'sepal width (cm)': 'sepal_width',
-            'petal length (cm)': 'petal_length',
-            'petal width (cm)': 'petal_width'
-        })
-        
-        # Map target numbers to species names
-        target_map = {
-            0: 'setosa',
-            1: 'versicolor',
-            2: 'virginica'
-        }
-        iris_df['species'] = iris_df['target'].map(target_map)
-        
-        # Add date_added column
-        import datetime
-        iris_df['date_added'] = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        
-        # Drop the target column
-        iris_df = iris_df.drop('target', axis=1)
+        date_added = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         
         # Insert data into the database
-        for _, row in iris_df.iterrows():
+        for sample in iris_samples:
             cursor.execute('''
             INSERT INTO iris_flowers 
             (sepal_length, sepal_width, petal_length, petal_width, species, date_added)
             VALUES (?, ?, ?, ?, ?, ?)
-            ''', (
-                float(row['sepal_length']),
-                float(row['sepal_width']),
-                float(row['petal_length']),
-                float(row['petal_width']),
-                row['species'],
-                row['date_added']
-            ))
+            ''', (*sample, date_added))
         
-        print(f"Added {len(iris_df)} iris samples to the database")
+        print(f"Added {len(iris_samples)} iris samples to the database")
     
     # Commit changes and close connection
     conn.commit()
