@@ -228,6 +228,13 @@ Each domain has its own dedicated configuration folder with its specific databas
   - `config/domains/model_scoring_churn_pred/database.yaml`: Domain-specific database configuration
   - `config/domains/model_scoring_churn_pred/integrations/ml.yaml`: Domain-specific ML service settings
 
+- `config/domains/model_loading_examples.yaml`: Demonstrates various model loading strategies
+  - `config/domains/model_loading_examples/integrations/ml_config.yaml`: Configuration for different model loading approaches:
+    - HTTP API models (traditional approach)
+    - Local artifact models (load models from filesystem)
+    - Docker models (run models in Docker containers)
+    - ECR models (pull and run models from Amazon ECR)
+
 ## How It Works
 
 The orchestrator works by:

@@ -130,7 +130,8 @@ Add your model configuration to your domain's `integrations/ml_config.yaml`:
 # config/domains/my_domain/integrations/ml_config.yaml
 ml:
   sources:
-    my_model:
+    # Standard HTTP API model
+    http_model:
       base_url: "http://my-model-service:5000"
       timeout: 10
       headers:
@@ -139,7 +140,52 @@ ml:
         default:
           endpoint: "/predict"
           method: "POST"
+    
+    # Model loaded from local artifacts
+    local_model:
+      base_url: "http://localhost:5002"  # Fallback if loading fails
+      models:
+        default:
+          endpoint: "/predict"
+          source:
+            type: "local_artifact"
+            path: "./models/local_model"
+            startup_command: "python -m app.serve --model_path ./model.pkl --port 8501"
+            host: "localhost"
+            port: 8501
+            startup_delay: 5  # Seconds to wait for model to start
+    
+    # Model loaded from Docker image
+    docker_model:
+      base_url: "http://localhost:5003"  # Fallback if loading fails
+      models:
+        default:
+          endpoint: "/predict"
+          source:
+            type: "docker"
+            image: "ml-model-service:latest"
+            pull: true  # Set to false to use local image only
+            host_port: 8502
+            container_port: 8000
+            environment:
+              MODEL_PATH: "/app/models/model.pkl"
+            startup_delay: 8
+    
+    # Model loaded from ECR
+    ecr_model:
+      base_url: "http://localhost:5004"  # Fallback if loading fails
+      models:
+        default:
+          endpoint: "/predict"
+          source:
+            type: "ecr"
+            repository: "ml-models/prediction-service"
+            tag: "latest"
+            region: "us-east-1"
+            startup_delay: 10
 ```
+
+For more details on model loading strategies, see the [Model Loading Documentation](docs/model_loading.md).
 
 > Note: The system also supports global configuration files at the root level (`config/database.yaml` and `config/integrations/`) for backward compatibility, but domain-specific configurations are preferred as they allow better separation between domains.
 

@@ -19,6 +19,11 @@ The Orchestrator API Service serves as a middleware layer that:
   - External APIs
   - Feature stores (Feast)
   - ML model services
+- **Multiple Model Loading Strategies**:
+  - HTTP API models (traditional approach)
+  - Local artifact models (load models from filesystem)
+  - Docker container models (run models in Docker)
+  - ECR repository models (pull and run models from AWS ECR)
 - **Dynamic Response Assembly**: Build responses by combining data from multiple sources
 - **Flexible Transformation**: Transform data between sources and before returning responses
 - **Execution Tracking**: Monitor and debug orchestration flows
@@ -228,7 +233,13 @@ The repository includes examples that demonstrate:
    - External APIs
    - Feature stores
 
-For more details, see the [Example README](example/README.md).
+3. **Model Loading Strategies**: Shows different ways to load and run ML models:
+   - HTTP API models (calling external services)
+   - Local artifact models (loading from filesystem)
+   - Docker container models (running in Docker)
+   - ECR repository models (pulling from AWS ECR)
+
+For more details, see the [Example README](example/README.md) and [Model Loading Documentation](docs/model_loading.md).
 
 ## API Documentation
 
