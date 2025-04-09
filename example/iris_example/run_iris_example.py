@@ -330,6 +330,46 @@ def test_domains_endpoint(api_port):
             print(f"Error response: {response.text}")
     except requests.RequestException as e:
         print(f"Request error: {e}")
+    
+    # Test debug endpoint configuration
+    print("\nTesting endpoint debug routes...")
+    debug_endpoints = [
+        f"http://localhost:{api_port}/debug/endpoint/iris_example/predict",
+        f"http://localhost:{api_port}/debug/endpoint/iris_example/predict_local",
+        f"http://localhost:{api_port}/debug/endpoint/iris_example/samples"
+    ]
+    
+    for endpoint in debug_endpoints:
+        try:
+            print(f"\nChecking configuration for: {endpoint}")
+            response = requests.get(endpoint)
+            print(f"Status: {response.status_code}")
+            if response.status_code == 200:
+                data = response.json()
+                if data.get("config_found", False):
+                    print("✅ Configuration found!")
+                else:
+                    print("❌ Configuration NOT found!")
+                    print(f"Details: {data}")
+            else:
+                print(f"Error: {response.text}")
+        except requests.RequestException as e:
+            print(f"Error: {e}")
+    
+    # Test direct iris test route
+    print("\nTesting direct iris test route...")
+    try:
+        iris_test_url = f"http://localhost:{api_port}/orchestrator/iris-test/predict/1"
+        print(f"Trying direct test route: {iris_test_url}")
+        response = requests.get(iris_test_url)
+        print(f"Status: {response.status_code}")
+        if response.status_code == 200:
+            print("✅ Direct iris test route is working!")
+            print(f"Response: {response.text[:100]}...")
+        else:
+            print(f"❌ Direct test route error: {response.text}")
+    except requests.RequestException as e:
+        print(f"Error: {e}")
         
     # Also test the endpoints directly
     print("\nTesting direct endpoint access...")

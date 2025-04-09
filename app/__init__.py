@@ -57,6 +57,32 @@ def create_app() -> FastAPI:
     async def debug_route():
         logger.info("Debug route accessed")
         return {"status": "ok", "config_path": config_path}
+    
+    # Add endpoint config debug route
+    @app.get("/debug/endpoint/{domain}/{operation}")
+    async def debug_endpoint_route(domain: str, operation: str):
+        from app.config.endpoint_config_manager import EndpointConfigManager
+        logger.info(f"Debug endpoint route accessed for {domain}/{operation}")
+        config_mgr = EndpointConfigManager()
+        config = config_mgr.get_endpoint_config(domain, operation)
+        if config:
+            logger.info(f"Found endpoint config for {domain}/{operation}")
+            return {
+                "status": "ok",
+                "domain": domain,
+                "operation": operation,
+                "config_found": True,
+                "config": config
+            }
+        else:
+            logger.warning(f"No endpoint config found for {domain}/{operation}")
+            return {
+                "status": "error",
+                "domain": domain,
+                "operation": operation,
+                "config_found": False,
+                "error": "Endpoint configuration not found"
+            }
         
     # Add domains route for accessing available domains
     @app.get("/orchestrator/domains")
@@ -67,6 +93,23 @@ def create_app() -> FastAPI:
         domains = config_loader.list_domain_configs()
         logger.info(f"Found domains: {domains}")
         return domains
+        
+    # Add test iris routes for direct access
+    @app.get("/orchestrator/iris-test/predict/{flower_id}")
+    async def iris_test_route(flower_id: int):
+        from app.orchestration.request_processor import RequestProcessor
+        logger.info(f"Iris test route accessed for flower_id {flower_id}")
+        processor = RequestProcessor()
+        result = await processor.process(
+            domain="iris_example",
+            operation="predict",
+            request_data={
+                "path_params": {"domain": "iris_example", "operation": "predict", "flower_id": flower_id},
+                "query_params": {},
+                "body": {}
+            }
+        )
+        return result
     
     # Add startup and shutdown events
     @app.on_event("shutdown")
