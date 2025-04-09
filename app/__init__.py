@@ -58,6 +58,44 @@ def create_app() -> FastAPI:
         logger.info("Debug route accessed")
         return {"status": "ok", "config_path": config_path}
     
+    # Add route inspection endpoint
+    @app.get("/debug/routes")
+    async def debug_routes():
+        """List all registered routes in the application"""
+        routes = []
+        for route in app.routes:
+            routes.append({
+                "path": route.path,
+                "name": route.name,
+                "methods": [method for method in route.methods] if hasattr(route, "methods") else None,
+                "endpoint": str(route.endpoint) if hasattr(route, "endpoint") else None,
+            })
+        
+        # Count by path prefix
+        prefixes = {}
+        for route in routes:
+            path = route["path"]
+            parts = path.split("/")
+            if len(parts) > 1:
+                prefix = parts[1]
+                if prefix:
+                    prefixes[prefix] = prefixes.get(prefix, 0) + 1
+        
+        router_routes = []
+        if hasattr(app, "router"):
+            for route in app.router.routes:
+                router_routes.append({
+                    "path": route.path if hasattr(route, "path") else str(route),
+                    "name": route.name if hasattr(route, "name") else None
+                })
+        
+        return {
+            "total_routes": len(routes),
+            "routes": routes,
+            "prefixes": prefixes,
+            "router_routes": router_routes
+        }
+    
     # Add endpoint config debug route
     @app.get("/debug/endpoint/{domain}/{operation}")
     async def debug_endpoint_route(domain: str, operation: str):
@@ -195,7 +233,193 @@ def create_app() -> FastAPI:
                 "traceback": traceback.format_exc()
             }
     
-    # Add direct sample route
+    # Add all direct iris routes with exact match
+    @app.get("/orchestrator/iris_example/predict/{flower_id}")
+    async def iris_exact_predict_route(flower_id: int):
+        from app.orchestration.request_processor import RequestProcessor
+        from app.config.config_loader import ConfigLoader
+        from app.config.endpoint_config_manager import EndpointConfigManager
+        from app.orchestration.data_orchestrator import DataOrchestrator
+        from app.orchestration.execution_tracker import ExecutionTracker
+        from app.orchestration.response_assembler import ResponseAssembler
+        
+        logger.info(f"Exact match iris route accessed for flower_id {flower_id}")
+        
+        # Create all components directly without Depends
+        config_loader = ConfigLoader()
+        endpoint_config = EndpointConfigManager(config_loader)
+        data_orchestrator = DataOrchestrator()
+        execution_tracker = ExecutionTracker()
+        response_assembler = ResponseAssembler()
+        
+        # Create the request processor with manually injected dependencies
+        processor = RequestProcessor(
+            endpoint_config=endpoint_config,
+            data_orchestrator=data_orchestrator,
+            execution_tracker=execution_tracker,
+            response_assembler=response_assembler
+        )
+        
+        try:
+            result = await processor.process(
+                domain="iris_example",
+                operation="predict",
+                request_data={
+                    "path_params": {"flower_id": str(flower_id)},
+                    "query_params": {},
+                    "body": {}
+                }
+            )
+            return result
+        except Exception as e:
+            logger.error(f"Error processing request: {str(e)}")
+            import traceback
+            return {
+                "status": "error",
+                "message": f"Error processing request: {str(e)}",
+                "traceback": traceback.format_exc()
+            }
+    
+    # Add more iris exact match routes
+    @app.get("/orchestrator/iris_example/predict_local/{flower_id}")
+    async def iris_exact_predict_local_route(flower_id: int):
+        from app.orchestration.request_processor import RequestProcessor
+        from app.config.config_loader import ConfigLoader
+        from app.config.endpoint_config_manager import EndpointConfigManager
+        from app.orchestration.data_orchestrator import DataOrchestrator
+        from app.orchestration.execution_tracker import ExecutionTracker
+        from app.orchestration.response_assembler import ResponseAssembler
+        
+        logger.info(f"Exact match iris predict_local route accessed for flower_id {flower_id}")
+        
+        # Create all components directly without Depends
+        config_loader = ConfigLoader()
+        endpoint_config = EndpointConfigManager(config_loader)
+        data_orchestrator = DataOrchestrator()
+        execution_tracker = ExecutionTracker()
+        response_assembler = ResponseAssembler()
+        
+        # Create the request processor with manually injected dependencies
+        processor = RequestProcessor(
+            endpoint_config=endpoint_config,
+            data_orchestrator=data_orchestrator,
+            execution_tracker=execution_tracker,
+            response_assembler=response_assembler
+        )
+        
+        try:
+            result = await processor.process(
+                domain="iris_example",
+                operation="predict_local",
+                request_data={
+                    "path_params": {"flower_id": str(flower_id)},
+                    "query_params": {},
+                    "body": {}
+                }
+            )
+            return result
+        except Exception as e:
+            logger.error(f"Error processing request: {str(e)}")
+            import traceback
+            return {
+                "status": "error",
+                "message": f"Error processing request: {str(e)}",
+                "traceback": traceback.format_exc()
+            }
+    
+    @app.get("/orchestrator/iris_example/compare/{flower_id}")
+    async def iris_exact_compare_route(flower_id: int):
+        from app.orchestration.request_processor import RequestProcessor
+        from app.config.config_loader import ConfigLoader
+        from app.config.endpoint_config_manager import EndpointConfigManager
+        from app.orchestration.data_orchestrator import DataOrchestrator
+        from app.orchestration.execution_tracker import ExecutionTracker
+        from app.orchestration.response_assembler import ResponseAssembler
+        
+        logger.info(f"Exact match iris compare route accessed for flower_id {flower_id}")
+        
+        # Create all components directly without Depends
+        config_loader = ConfigLoader()
+        endpoint_config = EndpointConfigManager(config_loader)
+        data_orchestrator = DataOrchestrator()
+        execution_tracker = ExecutionTracker()
+        response_assembler = ResponseAssembler()
+        
+        # Create the request processor with manually injected dependencies
+        processor = RequestProcessor(
+            endpoint_config=endpoint_config,
+            data_orchestrator=data_orchestrator,
+            execution_tracker=execution_tracker,
+            response_assembler=response_assembler
+        )
+        
+        try:
+            result = await processor.process(
+                domain="iris_example",
+                operation="compare",
+                request_data={
+                    "path_params": {"flower_id": str(flower_id)},
+                    "query_params": {},
+                    "body": {}
+                }
+            )
+            return result
+        except Exception as e:
+            logger.error(f"Error processing request: {str(e)}")
+            import traceback
+            return {
+                "status": "error",
+                "message": f"Error processing request: {str(e)}",
+                "traceback": traceback.format_exc()
+            }
+            
+    @app.get("/orchestrator/iris_example/samples")
+    async def iris_exact_samples_route():
+        from app.orchestration.request_processor import RequestProcessor
+        from app.config.config_loader import ConfigLoader
+        from app.config.endpoint_config_manager import EndpointConfigManager
+        from app.orchestration.data_orchestrator import DataOrchestrator
+        from app.orchestration.execution_tracker import ExecutionTracker
+        from app.orchestration.response_assembler import ResponseAssembler
+        
+        logger.info(f"Exact match iris samples route accessed")
+        
+        # Create all components directly without Depends
+        config_loader = ConfigLoader()
+        endpoint_config = EndpointConfigManager(config_loader)
+        data_orchestrator = DataOrchestrator()
+        execution_tracker = ExecutionTracker()
+        response_assembler = ResponseAssembler()
+        
+        # Create the request processor with manually injected dependencies
+        processor = RequestProcessor(
+            endpoint_config=endpoint_config,
+            data_orchestrator=data_orchestrator,
+            execution_tracker=execution_tracker,
+            response_assembler=response_assembler
+        )
+        
+        try:
+            result = await processor.process(
+                domain="iris_example",
+                operation="samples",
+                request_data={
+                    "path_params": {},
+                    "query_params": {"limit": "5"},
+                    "body": {}
+                }
+            )
+            return result
+        except Exception as e:
+            logger.error(f"Error processing request: {str(e)}")
+            import traceback
+            return {
+                "status": "error",
+                "message": f"Error processing request: {str(e)}",
+                "traceback": traceback.format_exc()
+            }
+    
+    # Legacy direct sample route
     @app.get("/orchestrator/iris-direct/samples")
     async def iris_samples_route():
         from app.orchestration.request_processor import RequestProcessor
