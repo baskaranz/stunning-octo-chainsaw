@@ -44,11 +44,17 @@ def setup():
     # Create model and database directories if needed
     os.makedirs(os.path.dirname(MODEL_PATH), exist_ok=True)
     
+    # Set the environment variable for the database path to match the config
+    # This makes sure the database is created at the location expected by the orchestrator
+    correct_db_path = os.path.join(EXAMPLE_DIR, 'iris_example.db')
+    os.environ['IRIS_DB_PATH'] = correct_db_path
+    
     # Import here to get the updated path
     from iris_database import IRIS_DB_PATH
     
     # Set up the database
     print(f"🔧 Creating the iris database at {IRIS_DB_PATH}...")
+    print(f"   This matches the path in the configuration: sqlite:///example/iris_example/iris_example.db")
     setup_database()
     print("✅ Database setup complete!")
     
