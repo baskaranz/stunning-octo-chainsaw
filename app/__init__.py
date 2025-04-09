@@ -159,6 +159,23 @@ def create_app() -> FastAPI:
         
         # Process the request
         try:
+            # Log detailed info about the database config
+            logger.info(f"DB Config: {db_config}")
+            
+            # Attempt with manual handling
+            from app.adapters.database.database_client import DatabaseClient
+            db_client = DatabaseClient()
+            
+            # Log the operations
+            try:
+                operations = db_config.get("database", {}).get("operations", {})
+                sources = db_config.get("database", {}).get("sources", {})
+                logger.info(f"DB Operations: {operations.keys()}")
+                logger.info(f"DB Sources: {sources.keys()}")
+            except Exception as e:
+                logger.error(f"Error inspecting DB config: {str(e)}")
+            
+            # Try to run
             result = await processor.process(
                 domain="iris_example",
                 operation="predict",
@@ -230,6 +247,9 @@ def create_app() -> FastAPI:
     async def troubleshoot_iris_route():
         from app.config.config_loader import ConfigLoader
         from app.config.endpoint_config_manager import EndpointConfigManager
+        from app.adapters.database.database_client import DatabaseClient
+        import sqlite3
+        import os
         
         config_loader = ConfigLoader()
         endpoint_config = EndpointConfigManager(config_loader)
@@ -249,6 +269,72 @@ def create_app() -> FastAPI:
         # Get ML config
         ml_config = config_loader.load_integration_config("ml_config", "iris_example")
         
+        # Direct database check
+        db_results = {}
+        db_error = None
+        try:
+            # Get DB path from config
+            connection_string = db_config.get('database', {}).get('sources', {}).get('default', {}).get('connection_string', '')
+            logger.info(f"Connection string: {connection_string}")
+            
+            # Parse SQLite connection string
+            if connection_string.startswith('sqlite:///'):
+                db_path = connection_string[10:]  # Remove sqlite:///
+                # Check if file exists
+                db_exists = os.path.exists(db_path)
+                absolute_path = os.path.abspath(db_path)
+                
+                # Try to connect directly
+                if db_exists:
+                    conn = sqlite3.connect(db_path)
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='table'")
+                    table_count = cursor.fetchone()[0]
+                    
+                    # Check for iris table
+                    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='iris_flowers'")
+                    has_iris_table = bool(cursor.fetchone())
+                    
+                    # Get sample if table exists
+                    sample_data = None
+                    if has_iris_table:
+                        cursor.execute("SELECT * FROM iris_flowers LIMIT 1")
+                        columns = [description[0] for description in cursor.description]
+                        row = cursor.fetchone()
+                        if row:
+                            sample_data = dict(zip(columns, row))
+                    
+                    conn.close()
+                    
+                    db_results = {
+                        "connection_string": connection_string,
+                        "db_path": db_path,
+                        "absolute_path": absolute_path,
+                        "db_exists": db_exists,
+                        "table_count": table_count,
+                        "has_iris_table": has_iris_table,
+                        "sample_data": sample_data
+                    }
+                else:
+                    db_results = {
+                        "connection_string": connection_string,
+                        "db_path": db_path,
+                        "absolute_path": absolute_path,
+                        "db_exists": False,
+                        "error": "Database file does not exist"
+                    }
+            else:
+                db_results = {
+                    "connection_string": connection_string,
+                    "error": "Not a SQLite connection string"
+                }
+        except Exception as e:
+            import traceback
+            db_error = {
+                "error": str(e),
+                "traceback": traceback.format_exc()
+            }
+        
         # Return all debugging information
         return {
             "status": "ok",
@@ -265,6 +351,8 @@ def create_app() -> FastAPI:
                 "sources": list(db_config.get("database", {}).get("sources", {}).keys()) if db_config else [],
                 "operations": list(db_config.get("database", {}).get("operations", {}).keys()) if db_config else []
             },
+            "db_check_results": db_results,
+            "db_error": db_error,
             "ml_config": {
                 "exists": bool(ml_config),
                 "sources": list(ml_config.get("ml", {}).get("sources", {}).keys()) if ml_config else []
