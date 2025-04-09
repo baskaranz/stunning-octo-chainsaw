@@ -179,9 +179,12 @@ def test_orchestrator_prediction(api_port):
     
     # Make a request to the orchestrator using the correct API path
     try:
+        print(f"Sending request to: http://localhost:{api_port}/orchestrator/iris_example/predict/{flower_id}")
         response = requests.get(
             f'http://localhost:{api_port}/orchestrator/iris_example/predict/{flower_id}'
         )
+        
+        print(f"Response status code: {response.status_code}")
         
         if response.status_code == 200:
             result = response.json()
@@ -189,8 +192,14 @@ def test_orchestrator_prediction(api_port):
             print(f"  Features: {result.get('features', {})}")
             print(f"  Predicted species: {result.get('prediction', {}).get('class_name', 'unknown')}")
             print(f"  Probabilities: {result.get('prediction', {}).get('probabilities', {})}")
+        elif response.status_code == 404:
+            print("❌ Endpoint not found. This suggests the iris_example domain is not properly loaded.")
+            print("   Please try the following steps:")
+            print("   1. Make sure you've run setup: python example/iris_example/run_iris_example.py --setup")
+            print("   2. Restart the orchestrator: python main.py")
+            print("   3. Check status: python example/iris_example/run_iris_example.py --check-orchestrator")
         else:
-            print(f"Error from orchestrator: {response.text}")
+            print(f"Error from orchestrator: {response.status_code} - {response.text}")
     except requests.RequestException as e:
         print(f"Error calling orchestrator: {str(e)}")
         print("Make sure the orchestrator service is running. You can start it with:")
@@ -235,7 +244,7 @@ def test_model_comparison(api_port):
 def check_orchestrator(api_port):
     """Check if the orchestrator is running and has loaded the iris domain"""
     try:
-        # Try to get list of domains
+        # First try to get list of domains
         response = requests.get(f'http://localhost:{api_port}/orchestrator/domains')
         if response.status_code == 200:
             domains = response.json()
@@ -250,8 +259,29 @@ def check_orchestrator(api_port):
                 print("      python main.py")
                 return False
         else:
-            print(f"❌ Orchestrator API responded but returned an error: {response.status_code} - {response.text}")
-            return False
+            print(f"⚠️ Domains endpoint returned: {response.status_code} - {response.text}")
+            print("Trying direct endpoint check instead...")
+            
+            # If domains endpoint isn't working, try accessing an iris endpoint directly
+            try:
+                # Try to access a sample endpoint
+                test_response = requests.get(f'http://localhost:{api_port}/orchestrator/iris_example/samples?limit=1')
+                if test_response.status_code == 200:
+                    print("✅ Orchestrator is running and iris_example domain is accessible!")
+                    return True
+                elif test_response.status_code == 404:
+                    print("❌ Iris example endpoints not found. Domain may not be loaded.")
+                    print("   This may be because:")
+                    print("   1. You need to run the setup step first: python example/iris_example/run_iris_example.py --setup")
+                    print("   2. You need to restart the orchestrator to load the new configuration")
+                    print("      python main.py")
+                    return False
+                else:
+                    print(f"❌ Error testing iris endpoint: {test_response.status_code} - {test_response.text}")
+                    return False
+            except requests.RequestException as e:
+                print(f"❌ Error testing iris endpoint: {str(e)}")
+                return False
     except requests.RequestException as e:
         print(f"❌ Orchestrator does not appear to be running: {str(e)}")
         print(f"   Please start it with: python main.py --port {api_port}")

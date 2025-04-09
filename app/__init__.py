@@ -57,6 +57,16 @@ def create_app() -> FastAPI:
     async def debug_route():
         logger.info("Debug route accessed")
         return {"status": "ok", "config_path": config_path}
+        
+    # Add domains route for accessing available domains
+    @app.get("/orchestrator/domains")
+    async def domains_route():
+        from app.config.config_loader import ConfigLoader
+        logger.info("Domains route accessed")
+        config_loader = ConfigLoader()
+        domains = config_loader.list_domain_configs()
+        logger.info(f"Found domains: {domains}")
+        return domains
     
     # Add startup and shutdown events
     @app.on_event("shutdown")
