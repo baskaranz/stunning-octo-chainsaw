@@ -250,10 +250,10 @@ def check_orchestrator(api_port):
                 print("      python main.py")
                 return False
         else:
-            print("❌ Orchestrator API responded but returned an error.")
+            print(f"❌ Orchestrator API responded but returned an error: {response.status_code} - {response.text}")
             return False
-    except requests.RequestException:
-        print("❌ Orchestrator does not appear to be running.")
+    except requests.RequestException as e:
+        print(f"❌ Orchestrator does not appear to be running: {str(e)}")
         print(f"   Please start it with: python main.py --port {api_port}")
         return False
 
@@ -278,6 +278,26 @@ def show_help():
     print("  4. Check if orchestrator has loaded the iris domain:")
     print("       python example/iris_example/run_iris_example.py --check-orchestrator [--api-port PORT]")
 
+def test_domains_endpoint(api_port):
+    """Test the domains endpoint directly"""
+    print("\nTesting /orchestrator/domains endpoint...")
+    
+    try:
+        response = requests.get(f"http://localhost:{api_port}/orchestrator/domains")
+        print(f"Status code: {response.status_code}")
+        print(f"Response headers: {response.headers}")
+        
+        if response.status_code == 200:
+            print(f"Response content: {response.text}")
+            try:
+                print(f"JSON response: {response.json()}")
+            except Exception as e:
+                print(f"Error parsing JSON: {e}")
+        else:
+            print(f"Error response: {response.text}")
+    except requests.RequestException as e:
+        print(f"Request error: {e}")
+
 def main():
     """Main function"""
     # Set up signal handler for graceful shutdown
@@ -291,6 +311,7 @@ def main():
     parser.add_argument('--test-orchestrator', action='store_true', help='Test the orchestrator endpoint')
     parser.add_argument('--test-comparison', action='store_true', help='Test the model comparison endpoint')
     parser.add_argument('--check-orchestrator', action='store_true', help='Check if orchestrator is running with iris domain')
+    parser.add_argument('--test-domains', action='store_true', help='Test the domains endpoint')
     parser.add_argument('--api-port', type=int, default=8000, help='Port for the Orchestrator API Service (default: 8000)')
     parser.add_argument('--model-port', type=int, default=8502, help='Port for the Iris model server (default: 8502)')
     args = parser.parse_args()
@@ -307,6 +328,11 @@ def main():
     # Check orchestrator
     if args.check_orchestrator:
         check_orchestrator(api_port)
+        return
+        
+    # Test domains endpoint
+    if args.test_domains:
+        test_domains_endpoint(api_port)
         return
     
     # Start the model server if requested
