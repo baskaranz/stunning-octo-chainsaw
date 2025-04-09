@@ -193,14 +193,16 @@ def test_orchestrator_prediction(api_port):
         species = "unknown"
     
     # Additional diagnostics
-    print(f"Database path: {IRIS_DB_PATH}")
-    print(f"Database exists: {os.path.exists(IRIS_DB_PATH)}")
+    # Get the database path that should match the configuration
+    db_path = os.path.join(EXAMPLE_DIR, 'iris_example.db')
+    print(f"Database path: {db_path}")
+    print(f"Database exists: {os.path.exists(db_path)}")
     
-    if os.path.exists(IRIS_DB_PATH):
+    if os.path.exists(db_path):
         try:
             # Direct database check
             import sqlite3
-            conn = sqlite3.connect(IRIS_DB_PATH)
+            conn = sqlite3.connect(db_path)
             cursor = conn.cursor()
             cursor.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='iris_flowers'")
             has_table = cursor.fetchone()[0] > 0
