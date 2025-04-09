@@ -62,15 +62,30 @@ def create_app() -> FastAPI:
     @app.get("/debug/endpoint/{domain}/{operation}")
     async def debug_endpoint_route(domain: str, operation: str):
         from app.config.endpoint_config_manager import EndpointConfigManager
+        from app.config.config_loader import ConfigLoader
+        
         logger.info(f"Debug endpoint route accessed for {domain}/{operation}")
-        config_mgr = EndpointConfigManager()
-        config = config_mgr.get_endpoint_config(domain, operation)
+        
+        # Create instances directly
+        config_loader = ConfigLoader()
+        config_mgr = EndpointConfigManager(config_loader)
+        
+        # Check if domain exists
+        domains = config_loader.list_domain_configs()
+        domain_exists = domain in domains
+        
+        # Get endpoint config if domain exists
+        config = None
+        if domain_exists:
+            config = config_mgr.get_endpoint_config(domain, operation)
+        
         if config:
             logger.info(f"Found endpoint config for {domain}/{operation}")
             return {
                 "status": "ok",
                 "domain": domain,
                 "operation": operation,
+                "domain_exists": domain_exists,
                 "config_found": True,
                 "config": config
             }
@@ -80,7 +95,9 @@ def create_app() -> FastAPI:
                 "status": "error",
                 "domain": domain,
                 "operation": operation,
+                "domain_exists": domain_exists,
                 "config_found": False,
+                "domains_available": domains,
                 "error": "Endpoint configuration not found"
             }
         
@@ -98,19 +115,163 @@ def create_app() -> FastAPI:
     @app.get("/orchestrator/iris-test/predict/{flower_id}")
     async def iris_test_route(flower_id: int):
         from app.orchestration.request_processor import RequestProcessor
+        from app.config.config_loader import ConfigLoader
+        from app.config.endpoint_config_manager import EndpointConfigManager
+        from app.orchestration.data_orchestrator import DataOrchestrator
+        from app.orchestration.execution_tracker import ExecutionTracker
+        from app.orchestration.response_assembler import ResponseAssembler
+        
         logger.info(f"Iris test route accessed for flower_id {flower_id}")
-        processor = RequestProcessor()
-        result = await processor.process(
-            domain="iris_example",
-            operation="predict",
-            request_data={
-                "path_params": {"domain": "iris_example", "operation": "predict", "flower_id": flower_id},
-                "query_params": {},
-                "body": {}
-            }
+        
+        # Create all components directly without Depends
+        config_loader = ConfigLoader()
+        endpoint_config = EndpointConfigManager(config_loader)
+        data_orchestrator = DataOrchestrator()
+        execution_tracker = ExecutionTracker()
+        response_assembler = ResponseAssembler()
+        
+        # Create the request processor with manually injected dependencies
+        processor = RequestProcessor(
+            endpoint_config=endpoint_config,
+            data_orchestrator=data_orchestrator,
+            execution_tracker=execution_tracker,
+            response_assembler=response_assembler
         )
-        return result
+        
+        # Load domain config directly to check it exists
+        domain_config = config_loader.load_domain_config("iris_example")
+        
+        if not domain_config:
+            return {
+                "status": "error",
+                "message": "Domain 'iris_example' not found in configuration",
+                "available_domains": config_loader.list_domain_configs()
+            }
+        
+        # Check endpoint exists in domain config
+        endpoints = domain_config.get("endpoints", {})
+        if "predict" not in endpoints:
+            return {
+                "status": "error",
+                "message": "Endpoint 'predict' not found in domain 'iris_example'",
+                "available_endpoints": list(endpoints.keys())
+            }
+        
+        # Process the request
+        try:
+            result = await processor.process(
+                domain="iris_example",
+                operation="predict",
+                request_data={
+                    "path_params": {"flower_id": str(flower_id)},
+                    "query_params": {},
+                    "body": {}
+                }
+            )
+            return result
+        except Exception as e:
+            logger.error(f"Error processing request: {str(e)}")
+            import traceback
+            return {
+                "status": "error",
+                "message": f"Error processing request: {str(e)}",
+                "traceback": traceback.format_exc()
+            }
     
+    # Add direct sample route
+    @app.get("/orchestrator/iris-direct/samples")
+    async def iris_samples_route():
+        from app.orchestration.request_processor import RequestProcessor
+        from app.config.config_loader import ConfigLoader
+        from app.config.endpoint_config_manager import EndpointConfigManager
+        from app.orchestration.data_orchestrator import DataOrchestrator
+        from app.orchestration.execution_tracker import ExecutionTracker
+        from app.orchestration.response_assembler import ResponseAssembler
+        
+        logger.info("Iris samples route accessed")
+        
+        # Create all components directly without Depends
+        config_loader = ConfigLoader()
+        endpoint_config = EndpointConfigManager(config_loader)
+        data_orchestrator = DataOrchestrator()
+        execution_tracker = ExecutionTracker()
+        response_assembler = ResponseAssembler()
+        
+        # Create the request processor with manually injected dependencies
+        processor = RequestProcessor(
+            endpoint_config=endpoint_config,
+            data_orchestrator=data_orchestrator,
+            execution_tracker=execution_tracker,
+            response_assembler=response_assembler
+        )
+        
+        try:
+            result = await processor.process(
+                domain="iris_example",
+                operation="samples",
+                request_data={
+                    "path_params": {},
+                    "query_params": {"limit": "5"},
+                    "body": {}
+                }
+            )
+            return result
+        except Exception as e:
+            logger.error(f"Error processing request: {str(e)}")
+            import traceback
+            return {
+                "status": "error",
+                "message": f"Error processing request: {str(e)}",
+                "traceback": traceback.format_exc()
+            }
+    
+    # Add direct route for troubleshooting each endpoint type
+    @app.get("/debug/troubleshoot-iris")
+    async def troubleshoot_iris_route():
+        from app.config.config_loader import ConfigLoader
+        from app.config.endpoint_config_manager import EndpointConfigManager
+        
+        config_loader = ConfigLoader()
+        endpoint_config = EndpointConfigManager(config_loader)
+        
+        # Collect comprehensive debugging information
+        domains = config_loader.list_domain_configs()
+        iris_config = config_loader.load_domain_config("iris_example")
+        
+        # Get available endpoints
+        endpoints = {}
+        if iris_config:
+            endpoints = iris_config.get("endpoints", {})
+        
+        # Get database config
+        db_config = config_loader.load_database_config("iris_example")
+        
+        # Get ML config
+        ml_config = config_loader.load_integration_config("ml_config", "iris_example")
+        
+        # Return all debugging information
+        return {
+            "status": "ok",
+            "domains_available": domains,
+            "iris_domain_found": "iris_example" in domains,
+            "iris_config": {
+                "exists": bool(iris_config),
+                "domain_id": iris_config.get("domain_id") if iris_config else None,
+                "description": iris_config.get("description") if iris_config else None,
+                "endpoints": list(endpoints.keys()) if endpoints else []
+            },
+            "database_config": {
+                "exists": bool(db_config),
+                "sources": list(db_config.get("database", {}).get("sources", {}).keys()) if db_config else [],
+                "operations": list(db_config.get("database", {}).get("operations", {}).keys()) if db_config else []
+            },
+            "ml_config": {
+                "exists": bool(ml_config),
+                "sources": list(ml_config.get("ml", {}).get("sources", {}).keys()) if ml_config else []
+            },
+            "config_path": config_path
+        }
+        
     # Add startup and shutdown events
     @app.on_event("shutdown")
     async def shutdown_event():
