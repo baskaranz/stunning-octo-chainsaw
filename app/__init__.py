@@ -58,4 +58,23 @@ def create_app() -> FastAPI:
         logger.info("Debug route accessed")
         return {"status": "ok", "config_path": config_path}
     
+    # Add startup and shutdown events
+    @app.on_event("shutdown")
+    async def shutdown_event():
+        """Cleanup resources on application shutdown."""
+        from app.adapters.ml.model_client import ModelClient
+        from fastapi import Depends
+        
+        try:
+            # Get the model client
+            from fastapi.dependency_overrides import get_respository
+            model_client = ModelClient()
+            
+            # Shutdown model client and unload all models
+            logger.info("Shutting down model client and unloading models...")
+            await model_client.shutdown()
+            logger.info("Model client shutdown complete")
+        except Exception as e:
+            logger.error(f"Error during application shutdown: {str(e)}")
+    
     return app
