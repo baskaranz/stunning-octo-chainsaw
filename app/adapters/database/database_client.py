@@ -299,3 +299,69 @@ class DatabaseClient:
     
     # Additional domain-specific methods can be added through extension mechanisms
     # For example, the generic orchestrator example uses database_extensions.py
+    
+    # Dynamic operation execution for configuration-defined operations
+    async def execute_operation(self, operation: str, params: Dict[str, Any], source_id: str = "default", domain: Optional[str] = None) -> Any:
+        """Execute a dynamically-defined database operation from configuration.
+        
+        Args:
+            operation: The operation name as defined in the database configuration
+            params: The parameters for the operation
+            source_id: The database source ID
+            domain: Optional domain for domain-specific operations
+            
+        Returns:
+            The operation result
+        """
+        from app.config.config_loader import ConfigLoader
+        
+        # Get the database configuration for the domain
+        config_loader = ConfigLoader()
+        db_config = config_loader.load_database_config(domain)
+        
+        if not db_config:
+            raise DatabaseError(f"Database configuration not found for domain '{domain}'", source_id)
+        
+        # Get the operation details
+        operations = db_config.get("database", {}).get("operations", {})
+        if operation not in operations:
+            raise DatabaseError(f"Operation '{operation}' not defined in database configuration for domain '{domain}'", source_id)
+        
+        operation_config = operations[operation]
+        query = operation_config.get("query")
+        
+        if not query:
+            raise DatabaseError(f"No query defined for operation '{operation}' in domain '{domain}'", source_id)
+        
+        # Filter parameters to those expected by the operation
+        expected_params = operation_config.get("params", [])
+        filtered_params = {k: v for k, v in params.items() if k in expected_params}
+        
+        # Execute the query
+        try:
+            result = await self.query(query, filtered_params, source_id)
+            
+            # Handle expected return types
+            return_type = operation_config.get("return_type", "list")
+            
+            if return_type == "single" and result:
+                return result[0]
+            elif return_type == "value" and result:
+                if len(result) > 0 and len(result[0]) > 0:
+                    return list(result[0].values())[0]
+                return None
+            else:
+                return result
+                
+        except Exception as e:
+            raise DatabaseError(f"Error executing operation '{operation}': {str(e)}", source_id)
+            
+    # Add method dispatch to handle dynamic operations
+    async def __getattr__(self, name):
+        """Handle dynamic database operations."""
+        async def dynamic_operation(**kwargs):
+            domain = kwargs.pop("domain", None)
+            source_id = kwargs.pop("source_id", "default")
+            return await self.execute_operation(name, kwargs, source_id, domain)
+            
+        return dynamic_operation

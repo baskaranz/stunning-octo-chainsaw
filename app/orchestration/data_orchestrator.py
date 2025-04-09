@@ -121,11 +121,15 @@ class DataOrchestrator:
                     logger.warning(f"Unsupported source type '{source_type}' in execution {execution_id}")
                     continue
                 
+                # Extract domain from endpoint config if available
+                domain = endpoint_config.get("domain_id")
+                
                 # Execute the operation on the data source
                 source_result = await self._execute_source_operation(
                     source_type, 
                     operation, 
-                    resolved_params
+                    resolved_params,
+                    domain=domain
                 )
                 
                 # Apply transform if specified
@@ -179,14 +183,21 @@ class DataOrchestrator:
         
         return current
     
-    async def _execute_source_operation(self, source_type: str, operation: str, params: Dict[str, Any]) -> Any:
+    async def _execute_source_operation(self, source_type: str, operation: str, params: Dict[str, Any], domain: Optional[str] = None) -> Any:
         """Execute an operation on a data source."""
         source = self.sources[source_type]
         
+        # Include domain in parameters if available
+        if domain:
+            params["domain"] = domain
+            
         # Call the operation method on the source client
         if hasattr(source, operation) and callable(getattr(source, operation)):
             return await getattr(source, operation)(**params)
         else:
+            # For database operations, we can try to use dynamic operation handling
+            if source_type == "database" and hasattr(source, "execute_operation") and callable(getattr(source, "execute_operation")):
+                return await source.execute_operation(operation, params, domain=domain)
             raise ValueError(f"Operation '{operation}' not supported by source type '{source_type}'")
     
     def _apply_transform(self, transform: Dict[str, Any], source_result: Any, current_result: Dict[str, Any]) -> Any:
