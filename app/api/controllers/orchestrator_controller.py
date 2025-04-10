@@ -26,8 +26,8 @@ VALID_NAME_PATTERN = re.compile(r'^[a-zA-Z0-9_-]+$')
 @router.get("/model_scoring/{model_name}/{entity_id}")
 async def get_model_scoring_with_id(
     request: Request,
-    model_name: str = Path(..., description="The name of the model to use for scoring"),
-    entity_id: str = Path(..., description="The ID of the entity to score (e.g., customer_id)"),
+    model_name: str,
+    entity_id: str,
     request_processor: RequestProcessor = Depends(),
     endpoint_config: EndpointConfigManager = Depends()
 ):
@@ -85,7 +85,7 @@ async def get_model_scoring_with_id(
 @router.get("/model_scoring/{model_name}")
 async def get_model_scoring(
     request: Request,
-    model_name: str = Path(..., description="The name of the model to use for scoring"),
+    model_name: str,  # The name of the model to use for scoring
     request_processor: RequestProcessor = Depends(),
     endpoint_config: EndpointConfigManager = Depends()
 ):
@@ -145,7 +145,7 @@ async def get_model_scoring(
 @router.post("/model_scoring/{model_name}")
 async def post_model_scoring(
     request: Request,
-    model_name: str = Path(..., description="The name of the model to use for scoring"),
+    model_name: str,  # The name of the model to use for scoring
     body: Dict[str, Any] = Body(..., description="Additional features or parameters for the model"),
     request_processor: RequestProcessor = Depends(),
     endpoint_config: EndpointConfigManager = Depends()
@@ -270,9 +270,9 @@ async def list_available_models(
 @router.get("/{domain}/{operation}/{entity_id}")
 async def generic_domain_operation_with_id(
     request: Request,
-    domain: str = Path(..., description="The domain name"),
-    operation: str = Path(..., description="The operation to perform"),
-    entity_id: str = Path(..., description="The ID of the entity to process"),
+    domain: str,  # The domain name
+    operation: str,  # The operation to perform
+    entity_id: str,  # The ID of the entity to process
     request_processor: RequestProcessor = Depends(),
     endpoint_config: EndpointConfigManager = Depends()
 ):
@@ -331,8 +331,8 @@ async def generic_domain_operation_with_id(
 @router.get("/{domain}/{operation}")
 async def generic_domain_operation(
     request: Request,
-    domain: str = Path(..., description="The domain name"),
-    operation: str = Path(..., description="The operation to perform"),
+    domain: str,  # The domain name
+    operation: str,  # The operation to perform
     request_processor: RequestProcessor = Depends(),
     endpoint_config: EndpointConfigManager = Depends()
 ):
@@ -390,8 +390,8 @@ async def generic_domain_operation(
 @router.post("/{domain}/{operation}")
 async def post_generic_domain_operation(
     request: Request,
-    domain: str = Path(..., description="The domain name"),
-    operation: str = Path(..., description="The operation to perform"),
+    domain: str,  # The domain name
+    operation: str,  # The operation to perform
     body: Dict[str, Any] = Body(..., description="Request body"),
     request_processor: RequestProcessor = Depends(),
     endpoint_config: EndpointConfigManager = Depends()
@@ -451,9 +451,9 @@ async def post_generic_domain_operation(
 @router.post("/{domain}/{operation}/{entity_id}")
 async def post_generic_domain_operation_with_id(
     request: Request,
-    domain: str = Path(..., description="The domain name"),
-    operation: str = Path(..., description="The operation to perform"),
-    entity_id: str = Path(..., description="The ID of the entity to process"),
+    domain: str,  # The domain name
+    operation: str,  # The operation to perform
+    entity_id: str,  # The ID of the entity to process
     body: Dict[str, Any] = Body(..., description="Request body"),
     request_processor: RequestProcessor = Depends(),
     endpoint_config: EndpointConfigManager = Depends()
