@@ -47,13 +47,36 @@ The service is built around these core components:
 
 ### Installation
 
-1. Clone the repository
-2. Create and activate a virtual environment
-3. Install dependencies:
+1. Clone the repository:
+   ```bash
+   git clone <repository-url>
+   cd orchestrator-api-service
+   ```
 
-```bash
-pip install -e .
-```
+2. Create and activate a virtual environment:
+   ```bash
+   # Using venv (Python 3.8+)
+   python -m venv .venv
+   source .venv/bin/activate  # On Windows, use: .venv\Scripts\activate
+   ```
+
+3. Install all dependencies (including development dependencies):
+   ```bash
+   # Option 1: Install all dependencies including development tools
+   pip install -r requirements.txt
+   
+   # Option 2: Install minimal required dependencies
+   pip install -e .
+   
+   # Option 3: Install with specific extras
+   # pip install -e ".[dev]"  # If extras are defined in setup.py
+   ```
+
+4. Verify installation:
+   ```bash
+   # Check that all dependencies are installed correctly
+   python -c "import fastapi, sqlalchemy, sklearn, flask, numpy, pandas; print('All core dependencies available')"
+   ```
 
 ### Running the Service
 

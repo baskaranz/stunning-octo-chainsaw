@@ -57,6 +57,31 @@ The generic orchestrator API provides a unified interface for model scoring that
                         └───────────────┘
 ```
 
+## Installation and Setup
+
+Before running the examples, make sure you have all dependencies installed:
+
+```bash
+# Install all dependencies
+pip install -r requirements.txt
+
+# Or install with development extras
+pip install -e ".[dev]"
+```
+
+### Dependencies for Iris Example
+
+The Iris example specifically requires these packages:
+- scikit-learn (for machine learning models)
+- numpy (for numerical operations)
+- flask (for the model server)
+- pandas (for data handling)
+
+You can verify these are installed with:
+```bash
+python -c "import sklearn, numpy, flask, pandas; print('Iris dependencies are installed')"
+```
+
 ## Running the Example
 
 ### Option 1: All-in-One Setup (Recommended)
@@ -236,17 +261,57 @@ The direct API implementation at `/api/iris/{flower_id}` showcases a robust appr
 2. If HTTP service is unavailable, try loading a local model file
 3. If both methods fail, fall back to rule-based prediction
 
-To run this example:
-```bash
-# Setup the database and configuration
-python example/run_iris_example.py --setup
+#### Running the Iris Example
 
-# Start the model server
-python example/run_iris_example.py --server
+1. **Install Dependencies**:
+   ```bash
+   # Make sure you have all required packages
+   pip install scikit-learn numpy pandas flask httpx
+   ```
 
-# In another terminal, start the orchestrator
-python example/start_orchestrator.py
-```
+2. **Setup the Database and Configuration**:
+   ```bash
+   python example/run_iris_example.py --setup
+   ```
+   This creates:
+   - SQLite database with Iris data
+   - Model file for prediction
+   - Configuration files for the orchestrator
+
+3. **Start the Model Server** (in one terminal):
+   ```bash
+   python example/run_iris_example.py --server
+   ```
+   This starts the Flask server on port 8502 serving the Iris model.
+
+4. **Start the Orchestrator** (in another terminal):
+   ```bash
+   python example/start_orchestrator.py
+   ```
+   This starts the FastAPI orchestrator on port 8000.
+
+5. **Test the Endpoints**:
+   ```bash
+   # Orchestrator endpoints
+   curl http://localhost:8000/orchestrator/iris_example/predict/1
+   curl http://localhost:8000/orchestrator/iris_example/predict_local/1
+   curl http://localhost:8000/orchestrator/iris_example/compare/1
+   curl http://localhost:8000/orchestrator/iris_example/samples?limit=3
+   
+   # Direct API endpoints
+   curl http://localhost:8000/api/iris/1
+   curl http://localhost:8000/api/iris/samples/5
+   ```
+
+6. **Verify Fallback Mechanism**:
+   To test the fallback mechanism, stop the model server (Ctrl+C) and try:
+   ```bash
+   curl http://localhost:8000/api/iris/1
+   ```
+   You'll see it fall back to the local model or rule-based prediction.
+   
+7. **Stopping Services**:
+   Press Ctrl+C in each terminal to stop the servers. The scripts include robust termination to ensure all processes are properly stopped.
 
 ### Configuration Files
 Each domain has its own dedicated configuration folder with its specific database and integration settings:
