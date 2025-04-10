@@ -4,7 +4,7 @@ ml:
   sources:
     # HTTP model - direct API call to a running ML service
     http_model:
-      base_url: "http://localhost:8501"
+      base_url: "http://localhost:8502"
       models:
         default:
           endpoint: "/predict"

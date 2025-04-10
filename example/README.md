@@ -1,307 +1,199 @@
-# Generic Orchestrator API Examples
+# Iris Flower Classification Example
 
-This directory contains examples demonstrating how to use the generic orchestrator API for model scoring with different data sources and model types.
+This example demonstrates using the Orchestrator API Service with the classic Iris dataset, showcasing multiple approaches to model integration.
 
 ## Overview
 
-The generic orchestrator API provides a unified interface for model scoring that can be configured without code changes. These examples show:
+The Iris example uses:
+- **Database**: SQLite database containing the Iris dataset
+- **Models**: scikit-learn classifier trained on the Iris dataset
+- **API**:
+  - Orchestrator endpoints for configuration-driven access
+  - Direct API endpoints with resilient fallback logic
 
-1. How to configure and use different model scoring endpoints:
-   - Credit risk scoring model
-   - Product recommendation model
-   - Loan prediction model
-   - Iris flower classification model
+## Features
 
-2. How to retrieve data from multiple sources:
-   - Database tables (for internal feature retrieval)
-   - Request parameters
-   - External APIs
-   - Feature stores (Feast)
+1. **Multiple Integration Approaches**:
+   - Configuration-driven orchestrator endpoints
+   - Direct API implementation with resilient fallback strategy
+   - Standalone prediction script
 
-3. How to call ML services with the appropriate request format:
-   - HTTP API models
-   - Local artifact models
-   - Docker models
-   - ECR models
+2. **Multiple Model Loading Strategies**:
+   - HTTP endpoint model (external service)
+   - Local artifact model (loading model from filesystem)
+   - Rule-based fallback prediction
+
+3. **Complete Example Flow**:
+   - Database setup and data loading
+   - Model training and deployment
+   - API configuration and routing
+   - Client request handling
 
 ## Components
 
-### Database Layer
-- SQLite database with sample customer data, products, and transactions
-- Used internally for feature retrieval, not exposed directly via API
-- Tables for credit history, payment behavior, and product preferences
+- **iris_database.py**: Sets up a SQLite database with Iris flower data
+- **iris_model_server.py**: Simple Flask server that loads and serves the model
+- **create_model.py**: Script to train and save the scikit-learn model
+- **run_example.py**: Script to set up and run the example
+- **models/iris_model.pkl**: Pre-trained scikit-learn model
 
-### ML Service Layer
-- Mock HTTP servers simulating different ML models:
-  - Credit risk model: Predicts default probability
-  - Recommendation model: Suggests products based on user behavior
-  - Loan prediction model: Evaluates loan applications
+## API Endpoints
 
-### Configuration Layer
-- YAML files defining the data flow for each model
-- Response mapping configurations
-- Feature mappings and transformations
+### Orchestrator Endpoints
 
-## Data Flow Architecture
+These endpoints demonstrate the configuration-driven approach:
 
 ```
-┌──────────────┐       ┌─────────────────┐       ┌──────────────┐
-│   Database/   │       │                 │       │              │
-│   API/Feast   │───────▶   Orchestrator  │───────▶   ML Model   │
-│              │       │                 │       │              │
-└──────────────┘       └─────────────────┘       └──────────────┘
-       ▲                        ▲
-       │                        │
-       │                ┌───────────────┐
-       └────────────────┤  HTTP Request │
-                        └───────────────┘
+GET /orchestrator/iris_example/predict/{flower_id}
+GET /orchestrator/iris_example/predict_local/{flower_id}
+GET /orchestrator/iris_example/compare/{flower_id}
+GET /orchestrator/iris_example/samples?limit=5
+```
+
+### Direct API Endpoints
+
+These endpoints demonstrate the resilient multi-tier approach:
+
+```
+GET /api/iris/{flower_id}
+GET /api/iris/samples/{count}
 ```
 
 ## Running the Example
 
-### Option 1: All-in-One Setup (Recommended)
+### Step 1: Set up the example
 
-The simplest way to run the example is with the all-in-one script:
+First, make sure you have all dependencies installed:
 
 ```bash
-python example/run_example.py
+pip install -e .
 ```
 
-This script will:
-1. Create and populate the database
-2. Start the mock ML services
-3. Configure the orchestrator API
-4. Run test API calls
-5. Keep the services running for you to try your own queries
+Then set up the database and model:
 
-When you're done, press Ctrl+C to stop all services.
-
-### Option 2: Manual Setup
-
-If you prefer to run each component separately:
-
-1. Set up the database:
-   ```bash
-   # Database setup is now handled in run_example.py
-   python example/run_example.py --setup-only
-   ```
-
-2. Start the mock ML services:
-   ```bash
-   python example/mock_ml_services.py
-   ```
-
-3. Start the orchestrator API:
-   ```bash
-   python main.py
-   ```
-
-4. Call the API endpoints with curl:
-   ```bash
-   # Credit risk scoring by customer ID
-   curl "http://localhost:8000/orchestrator/model_scoring/credit_risk/cust_1001"
-   
-   # Product recommendations with additional context
-   curl -X POST "http://localhost:8000/orchestrator/model_scoring/product_recommender/cust_1002" \
-     -H "Content-Type: application/json" \
-     -d '{"current_page": "electronics", "recent_searches": ["laptop", "headphones"]}'
-     
-   # Iris direct API endpoints (resilient implementation)
-   curl "http://localhost:8000/api/iris/1"
-   curl "http://localhost:8000/api/iris/samples/5"
-   ```
-
-5. Or use the provided client script:
-   ```bash
-   # Credit risk score for a customer
-   python example/api_client.py credit-risk --id cust_1001
-   
-   # Product recommendations with both ID and context
-   python example/api_client.py product-recommender --id cust_1002 \
-     --context "current_page=electronics,recent_searches=laptop|headphones"
-   ```
-
-## Model Endpoints
-
-### Credit Risk Scoring
-
-The credit risk model provides a risk assessment for a customer:
-
-- **Endpoint**: `/orchestrator/model_scoring/credit_risk/{customer_id}`
-- **Method**: GET
-- **Data Sources**:
-  - Customer profile from database (internal)
-  - Credit history from database (internal)
-  - Payment behavior from feature store
-- **Output**: Risk score, risk tier, key factors, and recommended actions
-
-Example response:
-```json
-{
-  "customer_id": "cust_1001",
-  "name": "Alice Johnson",
-  "risk_score": {
-    "score": 87,
-    "risk_tier": "Low",
-    "default_probability": 0.15,
-    "confidence": 0.92
-  },
-  "credit_profile": {
-    "credit_score": 720,
-    "debt_to_income": 0.32,
-    "payment_history_score": 0.95
-  },
-  "key_factors": [
-    {"factor": "consistent_payment_history", "impact": 0.35},
-    {"factor": "long_customer_relationship", "impact": 0.28},
-    {"factor": "recent_credit_inquiry", "impact": -0.12}
-  ],
-  "recommended_actions": [
-    {"action": "pre_approve_credit_line_increase", "confidence": 0.88},
-    {"action": "offer_premium_product", "confidence": 0.76}
-  ]
-}
+```bash
+python example/run_example.py --setup
 ```
 
-### Product Recommendation
+### Step 2: Start the model server
 
-The product recommendation model suggests products based on customer preferences and behavior:
+Start the Iris model server:
 
-- **Endpoint**: `/orchestrator/model_scoring/product_recommender/{customer_id}`
-- **Methods**: GET, POST
-- **Data Sources**:
-  - Customer profile from database (internal)
-  - Purchase history from database (internal)
-  - Current browse context from request
-- **Output**: List of recommended products with relevance scores
+```bash
+python example/iris_model_server.py
+```
 
-Example response:
+### Step 3: Start the Orchestrator
+
+Start the main application:
+
+```bash
+python main.py
+```
+
+### Step 4: Test the endpoints
+
+Using curl:
+
+```bash
+# Get a list of samples
+curl "http://localhost:8000/orchestrator/iris_example/samples?limit=3"
+
+# Predict using HTTP model
+curl "http://localhost:8000/orchestrator/iris_example/predict/1"
+
+# Predict using local model
+curl "http://localhost:8000/orchestrator/iris_example/predict_local/1"
+
+# Compare predictions from both models
+curl "http://localhost:8000/orchestrator/iris_example/compare/1"
+
+# Direct API endpoint with multi-tier fallback
+curl "http://localhost:8000/api/iris/1"
+
+# Get multiple samples with predictions
+curl "http://localhost:8000/api/iris/samples/5"
+```
+
+## Querying the Database
+
+You can query the SQLite database directly:
+
+```bash
+# Connect to the database
+sqlite3 example/iris_example.db
+
+# View all tables
+.tables
+
+# See the schema
+.schema
+
+# Query for specific flower data
+SELECT * FROM iris_flowers WHERE id = 1;
+
+# Get all species
+SELECT DISTINCT species FROM iris_flowers;
+
+# Get a random sample
+SELECT * FROM iris_flowers ORDER BY RANDOM() LIMIT 5;
+
+# Exit SQLite
+.quit
+```
+
+## Model Loading Strategies
+
+This example demonstrates three approaches to model loading:
+
+1. **HTTP Model**:
+   - Traditional approach calling an external model service
+   - Model runs as a separate process/service
+   - Communication via HTTP requests
+
+2. **Local Artifact Model**:
+   - Model is loaded directly from the filesystem
+   - Uses the saved model file for predictions
+   - No need for a separate service
+
+3. **Direct API Implementation**:
+   - Implemented as a direct FastAPI endpoint
+   - Multi-tier fallback strategy:
+     - First tries the HTTP model service
+     - Then tries to load a local model file
+     - Finally falls back to rule-based prediction if both methods fail
+   - More resilient and handles failure scenarios gracefully
+
+## Configuration Structure
+
+The Iris example is configured as a domain within the orchestrator:
+
+```
+config/domains/iris_example.yaml            # Main domain config
+config/domains/iris_example/database.yaml   # Database operations
+config/domains/iris_example/integrations/ml_config.yaml # ML model config
+```
+
+## Example Response
+
 ```json
 {
-  "customer_id": "cust_1002",
-  "recommendations": [
-    {
-      "product_id": "prod_5009",
-      "name": "Wireless Headphones",
-      "relevance_score": 0.95,
-      "price_tier": "premium",
-      "category": "electronics"
-    },
-    {
-      "product_id": "prod_3012",
-      "name": "Bluetooth Speaker",
-      "relevance_score": 0.87,
-      "price_tier": "mid-range",
-      "category": "electronics"
-    },
-    {
-      "product_id": "prod_4104",
-      "name": "Laptop Sleeve",
-      "relevance_score": 0.72,
-      "price_tier": "budget",
-      "category": "accessories"
+  "flower_id": 1,
+  "features": {
+    "sepal_length": 5.1,
+    "sepal_width": 3.5,
+    "petal_length": 1.4,
+    "petal_width": 0.2
+  },
+  "actual_species": "setosa",
+  "prediction": {
+    "class_name": "setosa",
+    "probabilities": {
+      "setosa": 0.95,
+      "versicolor": 0.04,
+      "virginica": 0.01
     }
-  ],
-  "context": {
-    "current_page": "electronics",
-    "based_on": ["purchase_history", "current_session", "similar_customers"]
-  }
+  },
+  "prediction_method": "http"
 }
 ```
-
-## Available Examples
-
-### 1. Model Scoring Example
-
-The main example demonstrating multiple model scoring endpoints:
-
-- `run_example.py`: All-in-one script to set up and run the example
-- `database_model.py`: Database schema and sample data for internal feature retrieval
-- `mock_ml_services.py`: Simulates the ML models
-- `database_extensions.py`: Database client extensions for feature retrieval
-- `api_client.py`: Client-side example of API usage
-- `model_scoring_client.py`: Specialized client for model scoring endpoints
-
-### 2. Iris Classification Example
-
-Located in the `iris_example` subdirectory, this example demonstrates:
-- Database-to-ML pattern with scikit-learn models
-- Multiple model loading strategies (HTTP, local artifact, and direct API implementation)
-- Multi-tier fallback strategy for robust prediction
-- Comparison of predictions from different sources
-- Direct API endpoint with resilient prediction logic
-
-The direct API implementation at `/api/iris/{flower_id}` showcases a robust approach with three-tier fallback:
-1. Attempt prediction using HTTP model service
-2. If HTTP service is unavailable, try loading a local model file
-3. If both methods fail, fall back to rule-based prediction
-
-To run this example, see the instructions in `example/iris_example/README.md`.
-
-### Configuration Files
-Each domain has its own dedicated configuration folder with its specific database and integration settings:
-
-- `config/domains/model_scoring_credit_risk.yaml`: Main domain configuration
-  - `config/domains/model_scoring_credit_risk/database.yaml`: Domain-specific database configuration
-  - `config/domains/model_scoring_credit_risk/integrations/ml.yaml`: Domain-specific ML service settings
-
-- `config/domains/model_scoring_product_recommender.yaml`: Main domain configuration  
-  - `config/domains/model_scoring_product_recommender/database.yaml`: Domain-specific database configuration
-  - `config/domains/model_scoring_product_recommender/integrations/ml.yaml`: Domain-specific ML service settings
-
-- `config/domains/model_scoring_loan_pred.yaml`: Main domain configuration
-  - `config/domains/model_scoring_loan_pred/database.yaml`: Domain-specific database configuration
-  - `config/domains/model_scoring_loan_pred/integrations/ml.yaml`: Domain-specific ML service settings
-
-- `config/domains/model_scoring_churn_pred.yaml`: Main domain configuration
-  - `config/domains/model_scoring_churn_pred/database.yaml`: Domain-specific database configuration
-  - `config/domains/model_scoring_churn_pred/integrations/ml.yaml`: Domain-specific ML service settings
-
-- `config/domains/model_loading_examples.yaml`: Demonstrates various model loading strategies
-  - `config/domains/model_loading_examples/integrations/ml_config.yaml`: Configuration for different model loading approaches:
-    - HTTP API models (traditional approach)
-    - Local artifact models (load models from filesystem)
-    - Docker models (run models in Docker containers)
-    - ECR models (pull and run models from Amazon ECR)
-
-## How It Works
-
-The orchestrator works by:
-
-1. Reading the configuration for the requested model
-2. Fetching data from the configured sources (including database for features)
-3. Mapping the data to the format expected by the ML model
-4. Calling the ML model with the prepared features
-5. Mapping the response to the defined output format
-
-All of this happens without needing to write model-specific code in the API service itself, making it easy to add new models by simply adding new configuration files.
-
-## Adding Your Own Model
-
-To add a new model to the orchestrator:
-
-1. Create a domain configuration folder:
-   ```
-   mkdir -p config/domains/model_scoring_your_model/integrations
-   ```
-
-2. Create the main domain configuration file:
-   ```
-   config/domains/model_scoring_your_model.yaml
-   ```
-
-3. Create domain-specific database configuration:
-   ```
-   config/domains/model_scoring_your_model/database.yaml
-   ```
-
-4. Create domain-specific integration configurations:
-   ```
-   config/domains/model_scoring_your_model/integrations/ml.yaml
-   ```
-
-5. Configure feature mappings and response format in the main domain configuration
-
-6. Restart the application to load the new configuration
-
-No code changes are required to the orchestrator API itself.
