@@ -9,6 +9,7 @@ import signal
 import requests
 import argparse
 import socket
+import atexit
 from iris_database import setup_database, get_iris_by_id, get_iris_sample
 
 # Set up paths
@@ -20,17 +21,77 @@ MODEL_PATH = os.path.join(MODELS_DIR, 'iris_model.pkl')
 # Global variables
 model_server_process = None
 
+def cleanup():
+    """Cleanup function to ensure process is terminated"""
+    global model_server_process
+    if model_server_process and model_server_process.poll() is None:
+        print("\nCleaning up model server process...")
+        try:
+            model_server_process.terminate()
+            try:
+                model_server_process.wait(timeout=1)
+            except subprocess.TimeoutExpired:
+                print("Force killing model server process...")
+                if sys.platform.startswith('win'):
+                    subprocess.call(f'taskkill /F /PID {model_server_process.pid}', shell=True)
+                else:
+                    os.kill(model_server_process.pid, signal.SIGKILL)
+        except Exception as e:
+            print(f"Error during cleanup: {e}")
+
+# Register the cleanup function
+atexit.register(cleanup)
+
 def signal_handler(sig, frame):
     """Handle Ctrl+C to stop all processes cleanly"""
     print("\nShutting down...")
     
+    global model_server_process
     if model_server_process:
         print("Stopping model server...")
-        model_server_process.terminate()
-        model_server_process.wait()
+        try:
+            # Try graceful termination first
+            model_server_process.terminate()
+            # Wait only briefly for graceful termination
+            for _ in range(3):
+                if model_server_process.poll() is not None:
+                    break
+                time.sleep(0.5)
+            
+            # If still running, force kill
+            if model_server_process.poll() is None:
+                print("Model server not responding to graceful termination. Forcing shutdown...")
+                if sys.platform.startswith('win'):
+                    # Windows doesn't have SIGKILL
+                    subprocess.call(f'taskkill /F /PID {model_server_process.pid}', shell=True)
+                else:
+                    # Linux/Mac
+                    os.kill(model_server_process.pid, signal.SIGKILL)
+        except Exception as e:
+            print(f"Error during shutdown: {e}")
+    
+    # Find any other Python processes that might be related to our server
+    try:
+        print("Checking for other Flask processes...")
+        if sys.platform.startswith('win'):
+            pass # Windows handling would go here
+        else:
+            # On Mac/Linux, find Python processes running Flask
+            pids = subprocess.check_output("ps aux | grep 'python.*iris_model_server.py' | grep -v grep | awk '{print $2}'", shell=True).decode().strip().split('\n')
+            for pid in pids:
+                if pid:
+                    try:
+                        pid = int(pid)
+                        print(f"Killing Flask process with PID {pid}")
+                        os.kill(pid, signal.SIGKILL)
+                    except Exception as e:
+                        print(f"Could not kill process {pid}: {e}")
+    except Exception as e:
+        print(f"Error cleaning up processes: {e}")
     
     print("Shutdown complete")
-    sys.exit(0)
+    # Force exit to make sure everything stops
+    os._exit(0)
 
 def setup():
     """Set up the example environment"""

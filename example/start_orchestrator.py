@@ -10,6 +10,7 @@ import time
 import signal
 import socket
 import requests
+import atexit
 
 # Set up paths
 EXAMPLE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -18,17 +19,78 @@ PROJECT_ROOT = os.path.dirname(EXAMPLE_DIR)
 # Global variable for the orchestrator process
 orchestrator_process = None
 
+def cleanup():
+    """Cleanup function to ensure process is terminated"""
+    global orchestrator_process
+    if orchestrator_process and orchestrator_process.poll() is None:
+        print("\nCleaning up orchestrator process...")
+        try:
+            orchestrator_process.terminate()
+            try:
+                orchestrator_process.wait(timeout=1)
+            except subprocess.TimeoutExpired:
+                print("Force killing orchestrator process...")
+                if sys.platform.startswith('win'):
+                    subprocess.call(f'taskkill /F /PID {orchestrator_process.pid}', shell=True)
+                else:
+                    os.kill(orchestrator_process.pid, signal.SIGKILL)
+        except Exception as e:
+            print(f"Error during cleanup: {e}")
+
+# Register the cleanup function
+atexit.register(cleanup)
+
 def signal_handler(sig, frame):
     """Handle Ctrl+C to stop orchestrator cleanly"""
     print("\nShutting down...")
     
+    global orchestrator_process
     if orchestrator_process:
         print("Stopping orchestrator...")
-        orchestrator_process.terminate()
-        orchestrator_process.wait()
+        try:
+            # Try graceful termination first
+            orchestrator_process.terminate()
+            # Wait only briefly for graceful termination
+            for _ in range(3):
+                if orchestrator_process.poll() is not None:
+                    break
+                time.sleep(0.5)
+            
+            # If still running, force kill
+            if orchestrator_process.poll() is None:
+                print("Orchestrator not responding to graceful termination. Forcing shutdown...")
+                if sys.platform.startswith('win'):
+                    # Windows doesn't have SIGKILL
+                    subprocess.call(f'taskkill /F /PID {orchestrator_process.pid}', shell=True)
+                else:
+                    # Linux/Mac
+                    import signal
+                    os.kill(orchestrator_process.pid, signal.SIGKILL)
+        except Exception as e:
+            print(f"Error during shutdown: {e}")
+    
+    # Find any other Python processes that might be related to our server
+    try:
+        print("Checking for other Python server processes...")
+        if sys.platform.startswith('win'):
+            pass # Windows handling would go here
+        else:
+            # On Mac/Linux, find Python processes
+            pids = subprocess.check_output("ps aux | grep 'python.*main.py' | grep -v grep | awk '{print $2}'", shell=True).decode().strip().split('\n')
+            for pid in pids:
+                if pid:
+                    try:
+                        pid = int(pid)
+                        print(f"Killing Python process with PID {pid}")
+                        os.kill(pid, signal.SIGKILL)
+                    except Exception as e:
+                        print(f"Could not kill process {pid}: {e}")
+    except Exception as e:
+        print(f"Error cleaning up processes: {e}")
     
     print("Shutdown complete")
-    sys.exit(0)
+    # Force exit to make sure everything stops
+    os._exit(0)
 
 def check_port_in_use(port):
     """Check if a port is in use"""
@@ -142,11 +204,29 @@ def start_orchestrator(port=8000, debug=False):
     
     # Wait for the orchestrator process to finish
     try:
-        orchestrator_process.wait()
+        # Use a polling approach with small timeout so we can catch keyboard interrupts
+        while orchestrator_process.poll() is None:
+            try:
+                # Wait for a small amount of time
+                exit_code = orchestrator_process.wait(timeout=0.5)
+                print(f"Orchestrator process exited with code {exit_code}")
+                break
+            except subprocess.TimeoutExpired:
+                # Process still running, continue polling
+                continue
     except KeyboardInterrupt:
+        # This block is likely not used since we have a signal handler,
+        # but keeping it as a fallback
         print("\nShutting down orchestrator...")
-        orchestrator_process.terminate()
-        orchestrator_process.wait()
+        try:
+            orchestrator_process.terminate()
+            orchestrator_process.wait(timeout=2)
+        except subprocess.TimeoutExpired:
+            print("Orchestrator not responding to termination. Forcing...")
+            if sys.platform.startswith('win'):
+                subprocess.call(f'taskkill /F /PID {orchestrator_process.pid}', shell=True)
+            else:
+                os.kill(orchestrator_process.pid, signal.SIGKILL)
         print("Orchestrator stopped")
 
 def main():
