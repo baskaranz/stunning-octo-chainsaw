@@ -105,6 +105,10 @@ If you prefer to run each component separately:
    curl -X POST "http://localhost:8000/orchestrator/model_scoring/product_recommender/cust_1002" \
      -H "Content-Type: application/json" \
      -d '{"current_page": "electronics", "recent_searches": ["laptop", "headphones"]}'
+     
+   # Iris direct API endpoints (resilient implementation)
+   curl "http://localhost:8000/api/iris/1"
+   curl "http://localhost:8000/api/iris/samples/5"
    ```
 
 5. Or use the provided client script:
@@ -222,8 +226,15 @@ The main example demonstrating multiple model scoring endpoints:
 
 Located in the `iris_example` subdirectory, this example demonstrates:
 - Database-to-ML pattern with scikit-learn models
-- Multiple model loading strategies (HTTP and local artifact)
+- Multiple model loading strategies (HTTP, local artifact, and direct API implementation)
+- Multi-tier fallback strategy for robust prediction
 - Comparison of predictions from different sources
+- Direct API endpoint with resilient prediction logic
+
+The direct API implementation at `/api/iris/{flower_id}` showcases a robust approach with three-tier fallback:
+1. Attempt prediction using HTTP model service
+2. If HTTP service is unavailable, try loading a local model file
+3. If both methods fail, fall back to rule-based prediction
 
 To run this example, see the instructions in `example/iris_example/README.md`.
 

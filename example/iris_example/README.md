@@ -6,6 +6,7 @@ This example demonstrates using the Orchestrator API Service with the classic Ir
 2. Multiple model loading strategies:
    - HTTP endpoint model
    - Local artifact model (loading model from filesystem)
+   - Direct API implementation with multi-tier fallback
 3. Comparison of predictions from different model sources
 
 ## Overview
@@ -20,6 +21,8 @@ The example uses:
 - **iris_database.py**: Sets up a SQLite database with Iris flower data
 - **iris_model_server.py**: Simple Flask server that loads and serves the model
 - **run_iris_example.py**: Script to set up and run the example
+- **app/api/controllers/iris_controller.py**: Direct API implementation with multi-tier fallback strategy
+- **iris_prediction.py**: Standalone script showing the core prediction logic (can be used for testing)
 
 ## Configuration
 
@@ -29,6 +32,20 @@ The configuration demonstrates:
   - HTTP model (calling an external API)
   - Local artifact model (loading model from filesystem)
 - Multiple endpoints that showcase different patterns
+
+## How It Integrates with the Orchestrator
+
+The Iris example is configured as a domain within the orchestrator service. When you install this example:
+
+1. Its configuration is automatically placed in the main config directory:
+   - `config/domains/iris_example.yaml` - Main domain config
+   - `config/domains/iris_example/database.yaml` - Database operations
+   - `config/domains/iris_example/integrations/ml_config.yaml` - ML model config
+
+2. The orchestrator loads this domain alongside any other domains
+3. All domain endpoints are available through the same orchestrator instance
+
+This follows the microservice architecture where the orchestrator is a shared service that handles multiple domains through configuration, not a separate instance per domain.
 
 ## Running the Example
 
@@ -40,23 +57,29 @@ First, make sure you have all dependencies installed:
 pip install -e .
 ```
 
+Then set up the database and model:
+
+```bash
+python example/iris_example/run_iris_example.py --setup
+```
+
 ### Step 2: Start the model server
 
-Start the Iris model server in one terminal:
+Start the Iris model server:
 
 ```bash
 python example/iris_example/run_iris_example.py --server
 ```
 
-### Step 3: Start the Orchestrator
+### Step 3: Access the Orchestrator
 
-Start the generic Orchestrator API Service in another terminal, pointing it to use the Iris example configuration:
+The standard orchestrator service should already be running and will have loaded the Iris domain configuration. If it's not running, start it:
 
 ```bash
-python main.py --config example/iris_example/config
+python main.py
 ```
 
-This uses the standard orchestrator API but with our Iris-specific configuration files.
+The orchestrator will automatically discover and load the Iris domain configuration from the config directory.
 
 ### Step 4: Test the endpoints
 
@@ -87,6 +110,12 @@ curl "http://localhost:8000/orchestrator/iris_example/predict_local/1"
 
 # Compare predictions from both models
 curl "http://localhost:8000/orchestrator/iris_example/compare/1"
+
+# Direct API endpoint with multi-tier fallback
+curl "http://localhost:8000/api/iris/1"
+
+# Get multiple samples with predictions
+curl "http://localhost:8000/api/iris/samples/5"
 ```
 
 ## Understanding the Data Flow
@@ -123,7 +152,7 @@ curl "http://localhost:8000/orchestrator/iris_example/compare/1"
 
 ## Model Loading Strategies
 
-This example demonstrates two approaches to model loading:
+This example demonstrates three approaches to model loading:
 
 1. **HTTP Model**:
    - Traditional approach calling an external model service
@@ -135,4 +164,12 @@ This example demonstrates two approaches to model loading:
    - Orchestrator starts the model server process
    - No need for a separate deployment
 
-The comparison endpoint shows that both approaches produce the same results, while giving flexibility in deployment options.
+3. **Direct API Implementation**:
+   - Implemented as a direct FastAPI endpoint
+   - Multi-tier fallback strategy:
+     - First tries the HTTP model service
+     - Then tries to load a local model file
+     - Finally falls back to rule-based prediction if both methods fail
+   - More resilient and handles failure scenarios gracefully
+
+The comparison endpoint shows that all approaches produce similar results, while giving flexibility in deployment options and resilience.
