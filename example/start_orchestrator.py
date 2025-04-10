@@ -8,6 +8,8 @@ import subprocess
 import argparse
 import time
 import signal
+import socket
+import requests
 
 # Set up paths
 EXAMPLE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -28,9 +30,69 @@ def signal_handler(sig, frame):
     print("Shutdown complete")
     sys.exit(0)
 
+def check_port_in_use(port):
+    """Check if a port is in use"""
+    import socket
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        return s.connect_ex(('localhost', port)) == 0
+
+def kill_process_on_port(port):
+    """Kill the process using the specified port"""
+    if sys.platform.startswith('win'):
+        # Windows
+        try:
+            output = subprocess.check_output(f'netstat -ano | findstr :{port}', shell=True).decode()
+            if output:
+                # The last number in the output is the PID
+                pid = output.strip().split()[-1]
+                subprocess.call(f'taskkill /F /PID {pid}', shell=True)
+                print(f"Killed process with PID {pid} using port {port}")
+                # Give the system time to release the port
+                time.sleep(1)
+                return True
+            return False
+        except subprocess.CalledProcessError:
+            return False
+    else:
+        # Mac/Linux
+        try:
+            cmd = f"lsof -i :{port} | grep LISTEN | awk '{{print $2}}'"
+            pid = subprocess.check_output(cmd, shell=True).decode().strip()
+            if pid:
+                subprocess.call(f'kill -9 {pid}', shell=True)
+                print(f"Killed process with PID {pid} using port {port}")
+                # Give the system time to release the port
+                time.sleep(1)
+                return True
+            return False
+        except subprocess.CalledProcessError:
+            return False
+
 def start_orchestrator(port=8000, debug=False):
     """Start the orchestrator service"""
     global orchestrator_process
+    
+    # Check if port is already in use
+    if check_port_in_use(port):
+        print(f"Port {port} is already in use.")
+        print("Attempting to kill the process using this port...")
+        if kill_process_on_port(port):
+            print(f"Successfully freed port {port}.")
+            # Give the system time to fully release the port
+            time.sleep(1)  
+        else:
+            alternative_port = port + 1
+            print(f"Could not free port {port}. Trying alternative port {alternative_port}...")
+            
+            # If alternative port is also in use, try to kill that process as well
+            if check_port_in_use(alternative_port):
+                if kill_process_on_port(alternative_port):
+                    print(f"Successfully freed port {alternative_port}.")
+                else:
+                    print(f"Could not free port {alternative_port}. Please manually check which process is using these ports.")
+                    sys.exit(1)
+            
+            port = alternative_port
     
     # Set environment variables for configuration
     env = os.environ.copy()
@@ -66,7 +128,17 @@ def start_orchestrator(port=8000, debug=False):
         print(f"Error: Orchestrator failed to start (exit code: {orchestrator_process.returncode})")
         sys.exit(1)
     
-    print(f"Orchestrator started on port {port}")
+    # Try to make a request to verify it's responding
+    try:
+        response = requests.get(f"http://localhost:{port}/docs")
+        if response.status_code == 200:
+            print(f"✅ Orchestrator is up and running on port {port}")
+            print(f"   Try the Swagger UI at: http://localhost:{port}/docs")
+        else:
+            print(f"⚠️ Orchestrator might be running but returned status code {response.status_code}")
+    except requests.RequestException:
+        print("⚠️ Orchestrator process started but is not responding to HTTP requests yet")
+        print("   This might be normal if the server is still initializing")
     
     # Wait for the orchestrator process to finish
     try:

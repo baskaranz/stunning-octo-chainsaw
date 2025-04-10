@@ -8,6 +8,7 @@ import time
 import signal
 import requests
 import argparse
+import socket
 from iris_database import setup_database, get_iris_by_id, get_iris_sample
 
 # Set up paths
@@ -104,10 +105,65 @@ def install_config_files():
             
             print(f"Copied {os.path.basename(src)} to {os.path.relpath(dst, PROJECT_ROOT)}")
 
+def check_port_in_use(port):
+    """Check if a port is in use"""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        return s.connect_ex(('localhost', port)) == 0
+
+def kill_process_on_port(port):
+    """Kill the process using the specified port"""
+    if sys.platform.startswith('win'):
+        # Windows
+        try:
+            output = subprocess.check_output(f'netstat -ano | findstr :{port}', shell=True).decode()
+            if output:
+                # The last number in the output is the PID
+                pid = output.strip().split()[-1]
+                subprocess.call(f'taskkill /F /PID {pid}', shell=True)
+                print(f"Killed process with PID {pid} using port {port}")
+                # Give the system time to release the port
+                time.sleep(1)
+                return True
+            return False
+        except subprocess.CalledProcessError:
+            return False
+    else:
+        # Mac/Linux
+        try:
+            cmd = f"lsof -i :{port} | grep LISTEN | awk '{{print $2}}'"
+            pid = subprocess.check_output(cmd, shell=True).decode().strip()
+            if pid:
+                subprocess.call(f'kill -9 {pid}', shell=True)
+                print(f"Killed process with PID {pid} using port {port}")
+                # Give the system time to release the port
+                time.sleep(1)
+                return True
+            return False
+        except subprocess.CalledProcessError:
+            return False
+
 def start_model_server(model_port):
     """Start the model server in a subprocess"""
     print(f"Starting the Iris model server on port {model_port}...")
     global model_server_process
+    
+    # Check if port is already in use
+    if check_port_in_use(model_port):
+        print(f"Port {model_port} is already in use.")
+        print("Attempting to kill the process using this port...")
+        if kill_process_on_port(model_port):
+            print(f"Successfully freed port {model_port}.")
+        else:
+            alternative_port = model_port + 1
+            print(f"Could not free port {model_port}. Trying alternative port {alternative_port}...")
+            model_port = alternative_port
+            # If alternative port is also in use, try to kill that process as well
+            if check_port_in_use(alternative_port):
+                if kill_process_on_port(alternative_port):
+                    print(f"Successfully freed port {alternative_port}.")
+                else:
+                    print(f"Could not free port {alternative_port}. Please manually check which process is using these ports.")
+                    sys.exit(1)
     
     # Set up environment variables
     env = os.environ.copy()
@@ -117,7 +173,10 @@ def start_model_server(model_port):
     # Run the server
     model_server_process = subprocess.Popen(
         [sys.executable, os.path.join(EXAMPLE_DIR, 'iris_model_server.py')],
-        env=env
+        env=env,
+        # Redirect stdout and stderr to our process
+        stdout=sys.stdout,
+        stderr=sys.stderr
     )
     
     # Wait for the server to start
@@ -140,8 +199,12 @@ def start_model_server(model_port):
             time.sleep(1)
     
     if not server_ready:
-        print("Error: Model server failed to start!")
-        sys.exit(1)
+        print(f"Error: Model server failed to start on port {model_port}!")
+        print("The server might be running but not responding correctly to the health check.")
+        print("You can still try to use other endpoints, but they might not work correctly.")
+        return False
+    
+    return True
 
 def test_direct_prediction(model_port):
     """Test the model server directly"""
@@ -525,19 +588,29 @@ def main():
     
     # Start the model server if requested
     if args.server:
-        start_model_server(model_port)
-        print(f"Model server is running on port {model_port}. Press Ctrl+C to stop.")
-        # Keep the script running
-        try:
-            while True:
-                time.sleep(1)
-        except KeyboardInterrupt:
-            print("\nShutting down...")
+        if start_model_server(model_port):
+            print(f"Model server is running on port {model_port}. Press Ctrl+C to stop.")
+            # Keep the script running
+            try:
+                while True:
+                    time.sleep(1)
+            except KeyboardInterrupt:
+                print("\nShutting down...")
+        else:
+            print("Warning: Model server health check failed, but it might still be partially functional.")
+            print("The server process will continue running. Press Ctrl+C to stop.")
+            try:
+                while True:
+                    time.sleep(1)
+            except KeyboardInterrupt:
+                print("\nShutting down...")
     
     # Test direct model prediction
     if args.test_direct:
-        start_model_server(model_port)
-        test_direct_prediction(model_port)
+        if start_model_server(model_port):
+            test_direct_prediction(model_port)
+        else:
+            print("Warning: Skipping direct prediction test as model server failed health check.")
         if model_server_process:
             model_server_process.terminate()
     
