@@ -158,12 +158,30 @@ def start_orchestrator(port=8000, debug=False):
     
     # Set environment variables for configuration
     env = os.environ.copy()
-    env['CONFIG_DIR'] = os.path.join(EXAMPLE_DIR, 'config')
+    config_dir = os.path.join(EXAMPLE_DIR, 'config')
+    
+    # Verify config directory exists
+    if not os.path.exists(config_dir):
+        print(f"Error: Config directory not found at {config_dir}")
+        print("Please make sure you're running from the correct location.")
+        print("Try running from the project root: python example/start_orchestrator.py")
+        sys.exit(1)
+        
+    env['CONFIG_DIR'] = config_dir
     
     # Command to run the orchestrator
+    main_script = os.path.join(PROJECT_ROOT, 'main.py')
+    
+    # Verify main.py exists
+    if not os.path.exists(main_script):
+        print(f"Error: Main script not found at {main_script}")
+        print("Please make sure you're running from the correct location.")
+        print("Try running from the project root: python example/start_orchestrator.py")
+        sys.exit(1)
+    
     orchestrator_cmd = [
         sys.executable, 
-        os.path.join(PROJECT_ROOT, 'main.py'),
+        main_script,
         '--port', str(port)
     ]
     
@@ -174,13 +192,24 @@ def start_orchestrator(port=8000, debug=False):
     print(f"Using configuration directory: {env['CONFIG_DIR']}")
     
     # Start the orchestrator process
-    orchestrator_process = subprocess.Popen(
-        orchestrator_cmd,
-        env=env,
-        # Redirect output to our terminal
-        stdout=sys.stdout,
-        stderr=sys.stderr
-    )
+    try:
+        print("\nStarting orchestrator process...")
+        orchestrator_process = subprocess.Popen(
+            orchestrator_cmd,
+            env=env,
+            # Redirect output to our terminal
+            stdout=sys.stdout,
+            stderr=sys.stderr
+        )
+    except Exception as e:
+        print(f"Error starting orchestrator process: {str(e)}")
+        print("\nPossible causes:")
+        print("1. The main.py script might have syntax errors or import issues")
+        print("2. Python environment might be missing required dependencies")
+        print("3. Permission issues with executing the script")
+        print("\nTry running the main script directly to debug:")
+        print(f"  python {main_script}")
+        sys.exit(1)
     
     # Wait a moment for the orchestrator to start
     time.sleep(2)
@@ -188,6 +217,31 @@ def start_orchestrator(port=8000, debug=False):
     # Check if the process is still running
     if orchestrator_process.poll() is not None:
         print(f"Error: Orchestrator failed to start (exit code: {orchestrator_process.returncode})")
+        
+        # Try to get more information about the failure
+        print("\nRetrying with output capture to diagnose the issue...")
+        try:
+            # Run again with output capture instead of redirection
+            result = subprocess.run(
+                orchestrator_cmd,
+                env=env,
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+            
+            if result.stdout:
+                print("\nStandard output:")
+                print(result.stdout)
+            
+            if result.stderr:
+                print("\nError output:")
+                print(result.stderr)
+                
+        except Exception as e:
+            print(f"Error during diagnostic run: {str(e)}")
+            
+        print("\nPlease fix the above errors and try again.")
         sys.exit(1)
     
     # Try to make a request to verify it's responding
