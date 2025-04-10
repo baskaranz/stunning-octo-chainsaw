@@ -1,4 +1,3 @@
-
 from pathlib import Path
 import sqlite3
 import json
@@ -69,4 +68,3 @@ if __name__ == '__main__':
     flower_id = int(sys.argv[1]) if len(sys.argv) > 1 else 1
     result = get_iris_prediction(flower_id)
     print(json.dumps(result, indent=2))
-

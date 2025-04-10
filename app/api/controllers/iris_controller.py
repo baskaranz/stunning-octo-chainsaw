@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 async def get_iris_by_id(flower_id: int) -> Dict[str, Any]:
     """Get iris flower data from the database by ID."""
-    db_path = 'example/iris_example/iris_example.db'
+    db_path = 'example/iris_example.db'
     db_file = Path(db_path)
     
     if not db_file.exists():
@@ -52,7 +52,7 @@ async def get_iris_by_id(flower_id: int) -> Dict[str, Any]:
 
 async def get_random_samples(count: int = 5) -> List[Dict[str, Any]]:
     """Get random iris flower samples from the database."""
-    db_path = 'example/iris_example/iris_example.db'
+    db_path = 'example/iris_example.db'
     db_file = Path(db_path)
     
     if not db_file.exists():
@@ -114,7 +114,7 @@ async def predict_with_http_model(features: Dict[str, float]) -> Dict[str, Any]:
 
 async def predict_with_local_model(features: Dict[str, float]) -> Dict[str, Any]:
     """Make prediction using locally saved model file."""
-    model_path = Path('example/iris_example/models/iris_model.pkl')
+    model_path = Path('example/models/iris_model.pkl')
     
     if not model_path.exists():
         logger.warning(f"Local model file not found: {model_path}")

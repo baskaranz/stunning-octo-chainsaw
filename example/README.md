@@ -224,7 +224,7 @@ The main example demonstrating multiple model scoring endpoints:
 
 ### 2. Iris Classification Example
 
-Located in the `iris_example` subdirectory, this example demonstrates:
+The Iris Classification example demonstrates:
 - Database-to-ML pattern with scikit-learn models
 - Multiple model loading strategies (HTTP, local artifact, and direct API implementation)
 - Multi-tier fallback strategy for robust prediction
@@ -236,7 +236,17 @@ The direct API implementation at `/api/iris/{flower_id}` showcases a robust appr
 2. If HTTP service is unavailable, try loading a local model file
 3. If both methods fail, fall back to rule-based prediction
 
-To run this example, see the instructions in `example/iris_example/README.md`.
+To run this example:
+```bash
+# Setup the database and configuration
+python example/run_iris_example.py --setup
+
+# Start the model server
+python example/run_iris_example.py --server
+
+# In another terminal, start the orchestrator
+python example/start_orchestrator.py
+```
 
 ### Configuration Files
 Each domain has its own dedicated configuration folder with its specific database and integration settings:
