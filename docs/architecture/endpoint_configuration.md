@@ -345,6 +345,78 @@ endpoints:
         risk_level: "$churn_prediction.risk_level"
 ```
 
+#### Pattern 4: Feature Store to ML with Database Fallback
+
+This pattern uses Feast feature store with automatic fallback to database when Feast is unavailable:
+
+```yaml
+endpoints:
+  predict_with_fallback:
+    description: "Predict using features from Feast with database fallback"
+    endpoint_type: "composite"
+    data_sources:
+      # Get entity ID from request
+      - name: entity_id
+        type: direct
+        params:
+          entity_id: "$request.path_params.entity_id"
+      
+      # Get features from Feast (automatic fallback to database if Feast fails)
+      - name: features
+        type: feast
+        source_id: feature_source
+        operation: get_features
+        params:
+          entity_id: "$entity_id.entity_id"
+      
+      # Get prediction using features
+      - name: prediction
+        type: ml
+        source_id: model_source
+        operation: predict
+        params:
+          features:
+            feature1: "$features.feature1"
+            feature2: "$features.feature2"
+            feature3: "$features.feature3"
+    
+    response_mapping:
+      entity_id: "$entity_id.entity_id"
+      features:
+        feature1: "$features.feature1"
+        feature2: "$features.feature2"
+        feature3: "$features.feature3"
+      prediction: "$prediction.prediction"
+```
+
+The database fallback is configured in the Feast configuration file:
+
+```yaml
+feast:
+  sources:
+    feature_source:
+      repo_path: "./feature_repo"
+      project: "default"
+      
+      # Default features to retrieve
+      default_features:
+        - "feature_service:feature1"
+        - "feature_service:feature2"
+        - "feature_service:feature3"
+      
+      # Database fallback configuration
+      database_fallback:
+        enabled: true
+        table: "features_table"
+        entity_key: "entity_id"
+        mapping:
+          "feature_service:feature1": "feature1_column"
+          "feature_service:feature2": "feature2_column"
+          "feature_service:feature3": "feature3_column"
+```
+
+This ensures that if Feast is unavailable or fails, the system automatically falls back to querying the database, providing greater resilience for production systems.
+
 ## Multiple Endpoints in a Domain
 
 A single domain can contain multiple endpoints that serve different but related purposes. This is particularly useful for:

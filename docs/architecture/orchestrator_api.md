@@ -106,9 +106,35 @@ endpoints:
 
 ## Example Usage
 
-### Data Flow
+### Data Flow Patterns
 
-The data flow through the orchestrator follows this pattern:
+The data flow through the orchestrator supports several patterns:
+
+#### Database -> ML Pattern
+
+This is the traditional pattern for model scoring:
+
+1. **Request Parsing**: Extract path parameters, query parameters, and request body
+2. **Database Retrieval**: Get data from database based on parameters
+3. **Feature Assembly**: Transform database data into model-ready features
+4. **Model Scoring**: Send features to ML model for scoring
+5. **Response Assembly**: Format the results according to the response mapping
+
+#### Feast -> ML Pattern (with Database Fallback)
+
+This pattern uses a feature store for feature retrieval with automatic fallback to database:
+
+1. **Request Parsing**: Extract entity ID from request
+2. **Feature Retrieval**: Get features from Feast feature store
+3. **Fallback Handling**: If Feast fails or is unavailable, automatically fall back to database
+4. **Model Scoring**: Send features to ML model for scoring
+5. **Response Assembly**: Format the results according to the response mapping
+
+An example of this pattern can be found in the Iris example.
+
+#### Composite Pattern
+
+This pattern combines multiple data sources:
 
 1. **Request Parsing**: Extract path parameters, query parameters, and request body
 2. **Data Retrieval**: Get data from configured sources based on parameters

@@ -121,6 +121,46 @@ ml:
 
 Models are loaded on-demand when the first prediction request is made. Each model is cached, so subsequent requests use the same running model instance.
 
+## Feature Loading Strategies
+
+The service supports multiple strategies for loading features for model prediction:
+
+1. **Direct Features**: Features provided directly in the request
+2. **Database Features**: Features queried from a database
+3. **Feast Features**: Features retrieved from a Feast feature store
+4. **Feast with Database Fallback**: Features from Feast with automatic fallback to database
+
+### Feast with Database Fallback
+
+This strategy provides resilient feature loading by automatically falling back to database queries when Feast is unavailable:
+
+```yaml
+# Configuration in feast_config.yaml
+feast:
+  sources:
+    feature_source:
+      repo_path: "./feature_repo"
+      project: "default"
+      
+      # Default features to retrieve
+      default_features:
+        - "feature_service:feature1"
+        - "feature_service:feature2"
+        - "feature_service:feature3"
+      
+      # Database fallback configuration
+      database_fallback:
+        enabled: true
+        table: "features_table"
+        entity_key: "entity_id"
+        mapping:
+          "feature_service:feature1": "column1"
+          "feature_service:feature2": "column2"
+          "feature_service:feature3": "column3"
+```
+
+The fallback mechanism is automatic and transparent to the model, providing the same feature interface regardless of the source.
+
 ## API Endpoints
 
 Models can be accessed through the standard domain endpoints:
