@@ -1,0 +1,36 @@
+# Iris Example Feast Configuration
+
+feast:
+  sources:
+    # Iris-specific Feast feature store configuration
+    iris_features:
+      repo_path: "./feature_repo/iris_example"
+      project: "iris_example"
+      entity_key_serialization_version: 2
+      
+      # Iris-specific feature service definitions
+      feature_services:
+        iris_features:
+          features:
+            - "iris:sepal_length"
+            - "iris:sepal_width"
+            - "iris:petal_length"
+            - "iris:petal_width"
+      
+      # Default features for common operations
+      default_iris_features:
+        - "iris:sepal_length"
+        - "iris:sepal_width"
+        - "iris:petal_length"
+        - "iris:petal_width"
+      
+      # Mapping to database table/columns (for fallback)
+      database_fallback:
+        enabled: true
+        table: "iris_flowers"
+        entity_key: "id"
+        mapping:
+          "iris:sepal_length": "sepal_length"
+          "iris:sepal_width": "sepal_width"
+          "iris:petal_length": "petal_length"
+          "iris:petal_width": "petal_width"

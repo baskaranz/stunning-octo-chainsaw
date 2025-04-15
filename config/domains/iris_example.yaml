@@ -1,9 +1,9 @@
 # Iris Example Domain Configuration
 domain_id: iris_example
-description: "Iris flower classification example with database to ML pattern"
+description: "Iris flower classification example with Feast to ML pattern and database fallback"
 
 endpoints:
-  # Endpoint using HTTP model
+  # Original endpoint using Database to ML pattern
   predict:
     description: "Predict iris species using flower features from database"
     endpoint_type: "composite"
@@ -38,6 +38,58 @@ endpoints:
         petal_width: "$iris_data.petal_width"
       actual_species: "$iris_data.species"
       prediction: "$prediction.prediction"
+      pattern: "Database -> ML"
+  
+  # New endpoint using Feast to ML pattern with database fallback
+  predict_feast:
+    description: "Predict iris species using flower features from Feast with database fallback"
+    endpoint_type: "composite"
+    data_sources:
+      # Get iris flower ID from request
+      - name: flower_id
+        type: direct
+        params:
+          flower_id: "$request.path_params.flower_id"
+      
+      # Get iris features from Feast (with automatic fallback to database)
+      - name: iris_features
+        type: feast
+        source_id: iris_features
+        operation: get_iris_features
+        params:
+          flower_id: "$flower_id.flower_id"
+      
+      # Get original data from database for comparison
+      - name: iris_data
+        type: database
+        source_id: default
+        operation: get_iris_by_id
+        params:
+          flower_id: "$flower_id.flower_id"
+      
+      # Get prediction from ML model using Feast features
+      - name: prediction
+        type: ml
+        source_id: http_model
+        operation: predict
+        params:
+          features:
+            sepal_length: "$iris_features.iris:sepal_length"
+            sepal_width: "$iris_features.iris:sepal_width"
+            petal_length: "$iris_features.iris:petal_length"
+            petal_width: "$iris_features.iris:petal_width"
+    
+    # Map the response
+    response_mapping:
+      flower_id: "$flower_id.flower_id"
+      features:
+        sepal_length: "$iris_features.iris:sepal_length"
+        sepal_width: "$iris_features.iris:sepal_width"
+        petal_length: "$iris_features.iris:petal_length"
+        petal_width: "$iris_features.iris:petal_width"
+      actual_species: "$iris_data.species"
+      prediction: "$prediction.prediction"
+      pattern: "Feast -> ML (with database fallback)"
   
   # Endpoint using locally loaded model
   predict_local:
@@ -75,6 +127,95 @@ endpoints:
       actual_species: "$iris_data.species"
       prediction: "$prediction.prediction"
       loaded_from: "local_artifact"
+      pattern: "Database -> ML (local model)"
+  
+  # Endpoint to compare all three patterns
+  compare_all:
+    description: "Compare predictions from all three patterns: Database->ML, Feast->ML, and Local Model"
+    endpoint_type: "composite"
+    data_sources:
+      # Get iris flower ID from request
+      - name: flower_id
+        type: direct
+        params:
+          flower_id: "$request.path_params.flower_id"
+      
+      # Get iris data from database
+      - name: iris_data
+        type: database
+        source_id: default
+        operation: get_iris_by_id
+        params:
+          flower_id: "$flower_id.flower_id"
+      
+      # Get iris features from Feast
+      - name: iris_features
+        type: feast
+        source_id: iris_features
+        operation: get_iris_features
+        params:
+          flower_id: "$flower_id.flower_id"
+      
+      # Get prediction using HTTP model with database features
+      - name: db_prediction
+        type: ml
+        source_id: http_model
+        operation: predict
+        params:
+          features:
+            sepal_length: "$iris_data.sepal_length"
+            sepal_width: "$iris_data.sepal_width"
+            petal_length: "$iris_data.petal_length"
+            petal_width: "$iris_data.petal_width"
+      
+      # Get prediction using HTTP model with Feast features
+      - name: feast_prediction
+        type: ml
+        source_id: http_model
+        operation: predict
+        params:
+          features:
+            sepal_length: "$iris_features.iris:sepal_length"
+            sepal_width: "$iris_features.iris:sepal_width"
+            petal_length: "$iris_features.iris:petal_length"
+            petal_width: "$iris_features.iris:petal_width"
+      
+      # Get prediction from local model
+      - name: local_prediction
+        type: ml
+        source_id: local_model
+        operation: predict
+        params:
+          features:
+            sepal_length: "$iris_data.sepal_length"
+            sepal_width: "$iris_data.sepal_width"
+            petal_length: "$iris_data.petal_length"
+            petal_width: "$iris_data.petal_width"
+    
+    # Map the response to compare predictions
+    response_mapping:
+      flower_id: "$flower_id.flower_id"
+      actual_species: "$iris_data.species"
+      database_features:
+        sepal_length: "$iris_data.sepal_length"
+        sepal_width: "$iris_data.sepal_width"
+        petal_length: "$iris_data.petal_length"
+        petal_width: "$iris_data.petal_width"
+      feast_features:
+        sepal_length: "$iris_features.iris:sepal_length"
+        sepal_width: "$iris_features.iris:sepal_width"
+        petal_length: "$iris_features.iris:petal_length"
+        petal_width: "$iris_features.iris:petal_width"
+      predictions:
+        database_to_ml: "$db_prediction.prediction"
+        feast_to_ml: "$feast_prediction.prediction"
+        local_model: "$local_prediction.prediction"
+      feature_source_match: {
+        "sepal_length": "$iris_data.sepal_length == $iris_features.iris:sepal_length",
+        "sepal_width": "$iris_data.sepal_width == $iris_features.iris:sepal_width",
+        "petal_length": "$iris_data.petal_length == $iris_features.iris:petal_length",
+        "petal_width": "$iris_data.petal_width == $iris_features.iris:petal_width"
+      }
   
   # Endpoint to compare predictions from both models
   compare:
