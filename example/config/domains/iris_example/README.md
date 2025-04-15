@@ -66,7 +66,44 @@ The Feast client (`app/adapters/feast/feast_client.py`) implements:
 
 To run this example:
 
-1. Start the orchestrator service with the Iris configuration
-2. Call the endpoints to see the different patterns in action
+1. Start the orchestrator service with the Iris configuration:
+   ```bash
+   python main.py
+   ```
+
+2. Call the endpoints to see the different patterns in action:
+   ```bash
+   # Database -> ML pattern
+   curl "http://localhost:8000/orchestrator/iris_example/predict/1"
+   
+   # Feast -> ML pattern with database fallback
+   curl "http://localhost:8000/orchestrator/iris_example/predict_feast/1"
+   
+   # Compare all patterns
+   curl "http://localhost:8000/orchestrator/iris_example/compare_all/1"
+   ```
 
 Even if Feast is not installed or available, the system will automatically fall back to using the database.
+
+## Running the Tests
+
+To run the tests for the Feast -> ML pattern with database fallback:
+
+```bash
+# Run all tests
+pytest tests/
+
+# Run specific test suites
+pytest tests/adapters/feast/test_feast_client.py
+pytest tests/adapters/feast/test_feast_database_fallback.py
+pytest tests/orchestration/test_feast_to_ml_pattern.py
+
+# Run with coverage report
+pytest --cov=app.adapters.feast --cov=app.orchestration tests/adapters/feast/ tests/orchestration/test_feast_to_ml_pattern.py
+```
+
+The tests include:
+- Unit tests for the Feast client with database fallback
+- Integration tests with real SQLite database
+- End-to-end tests for the different patterns
+- Concurrency tests for database fallback

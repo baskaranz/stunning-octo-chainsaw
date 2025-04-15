@@ -161,6 +161,23 @@ feast:
 
 The fallback mechanism is automatic and transparent to the model, providing the same feature interface regardless of the source.
 
+#### Testing the Feast with Database Fallback
+
+To test the Feast with database fallback pattern, the service includes comprehensive test cases:
+
+```bash
+# Run the specific test suites
+pytest tests/adapters/feast/
+pytest tests/orchestration/test_feast_to_ml_pattern.py
+```
+
+The tests cover:
+- Unit tests for the FeastClient
+- Integration tests with a real SQLite database
+- End-to-end flow tests for the Feast → ML pattern
+- Concurrency tests for database fallback mechanism
+- Comparison tests between Database → ML and Feast → ML patterns
+
 ## API Endpoints
 
 Models can be accessed through the standard domain endpoints:
