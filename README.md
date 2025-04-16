@@ -1,17 +1,17 @@
-# Orchestrator API Service
+# Orkestra
 
 A configurable API service that orchestrates data flows across multiple sources, including databases, external APIs, feature stores, and ML models.
 
 ## Overview
 
-The Orchestrator API Service serves as a middleware layer that:
+Orkestra serves as a middleware layer that:
 
 1. Exposes a unified API for client applications
 2. Orchestrates data flows across multiple backend systems
 3. Combines and transforms data from various sources
 4. Simplifies client integration with complex backend systems
 
-You can use this service in two ways:
+You can use Orkestra in two ways:
 - As a library in your Python projects (recommended)
 - As a standalone service
 
@@ -49,14 +49,14 @@ The service is built around these core components:
 Install from PyPI:
 
 ```bash
-pip install orchestrator-api-service
+pip install orkestra
 ```
 
 Or install from source:
 
 ```bash
 git clone <repository-url>
-cd orchestrator-api-service
+cd orkestra
 pip install -e .
 ```
 
@@ -65,7 +65,7 @@ pip install -e .
 1. Clone the repository:
    ```bash
    git clone <repository-url>
-   cd orchestrator-api-service
+   cd orkestra
    ```
 
 2. Create and activate a virtual environment:
@@ -94,8 +94,8 @@ pip install -e .
 1. **Initialize a new project**:
 
    ```bash
-   orchestrator-api init my-orchestrator-project
-   cd my-orchestrator-project
+   orkestra init my-orkestra-project
+   cd my-orkestra-project
    ```
 
 2. **Add your domain configurations**:
@@ -105,7 +105,7 @@ pip install -e .
 3. **Run the service**:
 
    ```bash
-   orchestrator-api run --config-path ./config
+   orkestra run --config-path ./config
    ```
 
 4. **Access the API**:
@@ -195,7 +195,7 @@ my-orchestrator-project/
 ### Minimal requirements.txt
 
 ```
-orchestrator-api-service>=0.1.0
+orkestra>=0.1.0
 ```
 
 ### Running the Project
@@ -205,28 +205,28 @@ orchestrator-api-service>=0.1.0
 pip install -r requirements.txt
 
 # Run the service
-orchestrator-api run --config-path ./config
+orkestra run --config-path ./config
 ```
 
 ## Command Line Interface
 
-The library provides a command-line interface (CLI) for working with Orchestrator API projects:
+The library provides a command-line interface (CLI) for working with Orkestra projects:
 
 ```bash
 # Show help
-orchestrator-api --help
+orkestra --help
 
 # Initialize a new project
-orchestrator-api init my-project
+orkestra init my-project
 
 # Run the service
-orchestrator-api run --config-path ./config
+orkestra run --config-path ./config
 
 # Run with auto-reload for development
-orchestrator-api run --reload --config-path ./config
+orkestra run --reload --config-path ./config
 
 # Show version
-orchestrator-api version
+orkestra version
 ```
 
 ## Examples

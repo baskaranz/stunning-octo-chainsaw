@@ -6,22 +6,22 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 setup(
-    name="orchestrator-api-service",
+    name="orkestra",
     version="0.1.0",
     author="Jaeger Team",
     author_email="example@example.com",
     description="A configurable API service that orchestrates data flows across multiple sources",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/yourusername/orchestrator-api-service",
+    url="https://github.com/yourusername/orkestra",
     packages=find_packages(),
     include_package_data=True,
     package_data={
-        "orchestrator_api_service": ["py.typed"],
+        "orkestra": ["py.typed"],
     },
     entry_points={
         "console_scripts": [
-            "orchestrator-api=orchestrator_api_service.cli:main",
+            "orkestra=orkestra.cli:main",
         ],
     },
     install_requires=[

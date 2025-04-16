@@ -1,0 +1,22 @@
+# Global orchestrator configuration
+app:
+  name: "Orchestrator API Service"
+  description: "API service for orchestrating data flows"
+  version: "0.1.0"
+  
+server:
+  host: "0.0.0.0"
+  port: 8000
+  
+logging:
+  level: "INFO"
+  
+execution:
+  timeout: 60000  # Default timeout in milliseconds
+  retries: 3
+  
+api:
+  # API-specific settings
+  prefix: "/orchestrator"
+  docs_url: "/docs"
+  redoc_url: "/redoc"

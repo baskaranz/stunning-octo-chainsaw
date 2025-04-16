@@ -1,20 +1,20 @@
-# Getting Started with Orchestrator API Service as a Library
+# Getting Started with Orkestra as a Library
 
-This guide will help you get started using Orchestrator API Service as a Python library.
+This guide will help you get started using Orkestra as a Python library.
 
 ## Installation
 
 Install the package from PyPI:
 
 ```bash
-pip install orchestrator-api-service
+pip install orkestra
 ```
 
 Or install from source:
 
 ```bash
 git clone <repository-url>
-cd orchestrator-api-service
+cd orkestra
 pip install -e .
 ```
 
@@ -24,16 +24,16 @@ The easiest way to get started is to create a new project using the CLI:
 
 ```bash
 # Create a new project
-orchestrator-api init my-orchestrator-project
+orkestra init my-orkestra-project
 
 # Navigate to the project directory
-cd my-orchestrator-project
+cd my-orkestra-project
 ```
 
 This will create a project with the following structure:
 
 ```
-my-orchestrator-project/
+my-orkestra-project/
 ├── config/
 │   ├── config.yaml            # Global application settings
 │   ├── database.yaml          # Database connection settings
@@ -49,10 +49,10 @@ Once you've created your project, you can run the service using the CLI:
 
 ```bash
 # Run the service using the config files
-orchestrator-api run --config-path ./config
+orkestra run --config-path ./config
 
 # For development with auto-reload
-orchestrator-api run --reload --config-path ./config
+orkestra run --reload --config-path ./config
 ```
 
 By default, the service will start on http://localhost:8000.

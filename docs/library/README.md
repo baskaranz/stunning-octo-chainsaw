@@ -1,6 +1,6 @@
-# Orchestrator API Service Library Documentation
+# Orkestra Library Documentation
 
-This directory contains detailed documentation for using Orchestrator API Service as a Python library.
+This directory contains detailed documentation for using Orkestra as a Python library.
 
 ## Table of Contents
 
@@ -13,7 +13,7 @@ This directory contains detailed documentation for using Orchestrator API Servic
 
 ## Overview
 
-The Orchestrator API Service can be used in two ways:
+Orkestra can be used in two ways:
 
 1. **As a Python Library** (recommended) - Import and use in your own projects
 2. **As a Standalone Service** - Run as a separate service
@@ -34,14 +34,14 @@ Using it as a library provides several advantages:
 
 ```bash
 # Install the package
-pip install orchestrator-api-service
+pip install orkestra
 
 # Create a new project
-orchestrator-api init my-project
+orkestra init my-project
 
 # Run the service
 cd my-project
-orchestrator-api run --config-path ./config
+orkestra run --config-path ./config
 ```
 
 See the [Getting Started](getting_started.md) guide for more details.

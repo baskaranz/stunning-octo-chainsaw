@@ -1,0 +1,14 @@
+# Global database configuration
+database:
+  # Default database source
+  sources:
+    default:
+      type: "sqlite"
+      connection_string: "sqlite:///data/example.db"
+      pool_size: 5
+      max_overflow: 10
+      pool_timeout: 30
+  
+  # Optional default configuration for all database operations
+  defaults:
+    timeout: 30000  # Default timeout in milliseconds
