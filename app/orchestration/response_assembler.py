@@ -1,40 +1,38 @@
 from typing import Any, Dict, Optional
 import re
 from app.common.utils.logging_utils import get_logger
+from app.orchestration.orchestration_interfaces import ResponsePostprocessor
 
 logger = get_logger(__name__)
 
-class ResponseAssembler:
+class ResponseAssembler(ResponsePostprocessor):
     """Assembles the final response from orchestration results."""
     
     def assemble_response(
         self, 
-        execution_id: str, 
         endpoint_config: Dict[str, Any], 
-        data_result: Dict[str, Any]
-    ) -> Optional[Dict[str, Any]]:
+        data_result: Dict[str, Any],
+        execution_id: Optional[str] = None
+    ) -> Dict[str, Any]:
         """Assemble the final response from the orchestration results.
         
         Args:
-            execution_id: The unique execution ID
             endpoint_config: The endpoint configuration
             data_result: The data result from orchestration
+            execution_id: Optional unique execution ID
             
         Returns:
-            The assembled response or None if no data available
+            The assembled response
         """
-        # Get the response mapping from the endpoint configuration
-        response_mapping = endpoint_config.get("response_mapping", {})
+        # Get the response template from the endpoint configuration
+        response_template = endpoint_config.get("response_template", {})
         
-        # If no mapping is defined, return the primary data source result
-        if not response_mapping:
-            primary_source = endpoint_config.get("primary_source")
-            if primary_source and primary_source in data_result:
-                return data_result[primary_source]
-            return None
+        # If no template is defined, return the raw data result
+        if not response_template:
+            return data_result
         
-        # Apply the response mapping to create the final response
-        return self._map_response(response_mapping, data_result)
+        # Apply template substitution
+        return self._apply_template(response_template, data_result)
     
     def _map_response(self, mapping: Dict[str, Any], data_result: Dict[str, Any]) -> Dict[str, Any]:
         """Map data from multiple sources into a single response structure.
@@ -150,3 +148,85 @@ class ResponseAssembler:
                 return None
         
         return current
+
+    def _apply_template(self, template: Any, data_result: Dict[str, Any]) -> Any:
+        """Apply template substitution to create the response.
+        
+        Args:
+            template: The response template (can be dict, list, or string)
+            data_result: The data result from orchestration
+            
+        Returns:
+            The templated response
+        """
+        # Handle different template types
+        if isinstance(template, dict):
+            # Process each key in the dictionary template
+            result = {}
+            for key, value in template.items():
+                result[key] = self._apply_template(value, data_result)
+            return result
+        
+        elif isinstance(template, list):
+            # Process each item in the list template
+            result = []
+            for item in template:
+                result.append(self._apply_template(item, data_result))
+            return result
+        
+        elif isinstance(template, str):
+            # Check if this is a template variable reference like {source_name}
+            if template.startswith("{") and template.endswith("}"):
+                # Extract the variable name
+                var_name = template[1:-1]
+                
+                # Check for nested references (e.g., {customer.name})
+                if "." in var_name:
+                    parts = var_name.split(".")
+                    source_name = parts[0]
+                    
+                    # If the source exists in the data result
+                    if source_name in data_result:
+                        # Get nested value using the remaining path
+                        return self._get_nested_value(data_result[source_name], parts[1:])
+                    return None
+                
+                # Simple reference to a top-level source
+                if var_name in data_result:
+                    return data_result[var_name]
+                return None
+            
+            # Check for embedded template variables like "Hello {customer.name}!"
+            if "{" in template and "}" in template:
+                result = template
+                # Find all {variable} patterns
+                pattern = r"\{([^}]+)\}"
+                matches = re.findall(pattern, template)
+                
+                for match in matches:
+                    placeholder = "{" + match + "}"
+                    
+                    # Handle nested references
+                    if "." in match:
+                        parts = match.split(".")
+                        source_name = parts[0]
+                        
+                        if source_name in data_result:
+                            value = self._get_nested_value(data_result[source_name], parts[1:])
+                            # Replace the placeholder with the value (convert to string)
+                            if value is not None:
+                                result = result.replace(placeholder, str(value))
+                    else:
+                        # Simple reference
+                        if match in data_result:
+                            value = data_result[match]
+                            if value is not None:
+                                result = result.replace(placeholder, str(value))
+                
+                return result
+            
+            # Not a template, return as is
+            return template
+        
+        # For other types (int, bool, etc.), return as is
+        return template

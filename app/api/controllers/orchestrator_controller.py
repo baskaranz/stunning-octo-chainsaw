@@ -23,7 +23,7 @@ router = APIRouter()
 # Regular expression to validate domain and operation names (only allow alphanumeric, dash and underscore)
 VALID_NAME_PATTERN = re.compile(r'^[a-zA-Z0-9_-]+$')
 
-@router.get("/model_scoring/{model_name}/{entity_id}")
+@router.get("/model_scoring/{model_name}/{entity_id}", response_model=None)
 async def get_model_scoring_with_id(
     request: Request,
     model_name: str,
@@ -82,7 +82,7 @@ async def get_model_scoring_with_id(
     
     return result
 
-@router.get("/model_scoring/{model_name}")
+@router.get("/model_scoring/{model_name}", response_model=None)
 async def get_model_scoring(
     request: Request,
     model_name: str,  # The name of the model to use for scoring
@@ -142,7 +142,7 @@ async def get_model_scoring(
     
     return result
 
-@router.post("/model_scoring/{model_name}")
+@router.post("/model_scoring/{model_name}", response_model=None)
 async def post_model_scoring(
     request: Request,
     model_name: str,  # The name of the model to use for scoring

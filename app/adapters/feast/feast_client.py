@@ -153,14 +153,18 @@ class FeastClient:
         if not entity_ids:
             raise FeastError(f"No entity IDs found in entity rows for key '{entity_key}'", source_id)
         
-        # Prepare query to fetch features from the database
-        placeholders = ", ".join(["?"] * len(entity_ids))
-        reverse_mapping = {v: k for k, v in mapping.items()}
+        # Build columns to select
         db_columns = ", ".join([mapping.get(ref, ref) for ref in feature_refs])
         
-        # Query the database
+        # Create a query that uses the IN clause for multiple entity IDs
+        placeholders = ", ".join([f":{entity_key}_{i}" for i in range(len(entity_ids))])
         query = f"SELECT {entity_key}, {db_columns} FROM {table} WHERE {entity_key} IN ({placeholders})"
-        rows = await self.database_client.query(query, {entity_key: entity_ids})
+        
+        # Create parameters dictionary with named placeholders
+        params = {f"{entity_key}_{i}": entity_id for i, entity_id in enumerate(entity_ids)}
+        
+        # Execute the query with all entity IDs in a single call
+        rows = await self.database_client.query(query, params)
         
         # Build result dictionary in the same format as Feast
         result = {feature_ref: [] for feature_ref in feature_refs}

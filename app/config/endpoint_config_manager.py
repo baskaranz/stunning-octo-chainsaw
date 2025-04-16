@@ -2,6 +2,7 @@ from typing import Any, Dict, Optional, List
 from fastapi import Depends
 
 from app.config.config_loader import ConfigLoader
+from app.orchestration.orchestration_interfaces import ConfigProvider
 from app.common.utils.logging_utils import get_logger
 
 logger = get_logger(__name__)
@@ -9,14 +10,54 @@ logger = get_logger(__name__)
 # Valid endpoint types
 VALID_ENDPOINT_TYPES = ["database", "api", "feast", "ml", "composite"]
 
-class EndpointConfigManager:
+class EndpointConfigManager(ConfigProvider):
     """Manages endpoint configurations for API operations."""
     
     def __init__(self, config_loader: ConfigLoader = Depends()):
         self.config_loader = config_loader
         self.endpoint_cache = {}
-    
-    def get_endpoint_config(self, domain: str, operation: str) -> Optional[Dict[str, Any]]:
+        
+    def get_endpoint_config(self, endpoint_id: str, domain: Optional[str] = None, 
+                           version: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        """Get endpoint configuration by ID or domain/operation combination.
+        
+        This method implements the ConfigProvider interface and supports both:
+        - New format: endpoint_id as the primary identifier (e.g. "customer_profile")
+        - Legacy format: domain and operation as identifiers (e.g. "customers", "get")
+        
+        Args:
+            endpoint_id: The endpoint ID or domain if using legacy format
+            domain: Optional domain for versioned endpoints, or operation if using legacy format 
+            version: Optional version identifier
+            
+        Returns:
+            The endpoint configuration or None if not found
+        """
+        # First, try to interpret as new format with endpoint_id as the primary key
+        if "." not in endpoint_id and domain is None:
+            # Try to load by direct endpoint ID if no domain is provided
+            for d in self.config_loader.get_all_domains():
+                domain_config = self.config_loader.load_domain_config(d)
+                endpoints = domain_config.get("endpoints", {})
+                
+                # Check if any endpoint has this ID
+                for op, config in endpoints.items():
+                    if config.get("endpoint_id") == endpoint_id:
+                        # Found the endpoint by ID
+                        self._validate_endpoint_config(config, d, op)
+                        return config
+            
+            # If endpoint not found by ID, try to interpret as a domain name
+            logger.debug(f"No endpoint found with ID '{endpoint_id}', checking if it's a domain")
+        
+        # Legacy format: domain.operation
+        if domain is not None:
+            # Use the first parameter as domain and second as operation
+            return self.get_domain_operation_config(endpoint_id, domain)
+            
+        return None
+        
+    def get_domain_operation_config(self, domain: str, operation: str) -> Optional[Dict[str, Any]]:
         """Get the configuration for a specific domain operation endpoint.
         
         Args:

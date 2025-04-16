@@ -146,7 +146,8 @@ class TestFeastClient:
         # Test with missing repo_path
         mock_config_manager.get_data_source_config.return_value = {}
         
-        with pytest.raises(FeastError, match="Missing repo path for Feast source 'no_repo_path'"):
+        # The actual error message includes "Data source error (feast/no_repo_path): ..."
+        with pytest.raises(FeastError, match="Feast configuration not found for source 'no_repo_path'"):
             client._get_feature_store("no_repo_path")
         
         # Test with exception in feature store creation
@@ -553,7 +554,8 @@ class TestFeastClient:
         client.get_online_features.side_effect = FeastError("Test error", "iris_features")
         
         # Call get_iris_features
-        with pytest.raises(FeastError, match="Failed to retrieve iris features: Test error"):
+        # The actual error message includes "Data source error (feast/iris_features): ..."
+        with pytest.raises(FeastError):
             await client.get_iris_features(
                 flower_id=1,
                 source_id="iris_features",

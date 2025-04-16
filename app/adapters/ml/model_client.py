@@ -11,6 +11,11 @@ from app.adapters.ml.model_loader import ModelLoader
 
 logger = get_logger(__name__)
 
+# Create a dependency function to provide ModelLoader
+def get_model_loader():
+    """Dependency function to provide ModelLoader."""
+    return ModelLoader()
+
 class ModelClient:
     """Client for ML model inference services."""
     
@@ -18,11 +23,11 @@ class ModelClient:
         self, 
         config_manager: DataSourceConfigManager = Depends(),
         http_client: HttpClient = Depends(),
-        model_loader: Optional[ModelLoader] = None
+        model_loader: ModelLoader = Depends(get_model_loader)
     ):
         self.config_manager = config_manager
         self.http_client = http_client
-        self.model_loader = model_loader or ModelLoader()
+        self.model_loader = model_loader
         self._model_locks = {}  # Dict to store locks for each model
     
     def _get_model_lock(self, model_key: str):

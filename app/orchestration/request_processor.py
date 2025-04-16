@@ -2,22 +2,25 @@ from typing import Any, Dict, Optional
 from fastapi import Depends
 
 from app.config.endpoint_config_manager import EndpointConfigManager
-from app.orchestration.data_orchestrator import DataOrchestrator
+from app.orchestration.orchestration_interfaces import Orchestrator
 from app.orchestration.execution_tracker import ExecutionTracker
 from app.orchestration.response_assembler import ResponseAssembler
+from app.common.utils.logging_utils import get_logger
+
+logger = get_logger(__name__)
 
 class RequestProcessor:
     """Processes incoming API requests by orchestrating data flows."""
     
     def __init__(
         self,
-        endpoint_config: EndpointConfigManager = Depends(),
-        data_orchestrator: DataOrchestrator = Depends(),
+        config_manager: EndpointConfigManager = Depends(),
+        orchestrator: Orchestrator = Depends(),
         execution_tracker: ExecutionTracker = Depends(),
         response_assembler: ResponseAssembler = Depends()
     ):
-        self.endpoint_config = endpoint_config
-        self.data_orchestrator = data_orchestrator
+        self.config_manager = config_manager
+        self.orchestrator = orchestrator
         self.execution_tracker = execution_tracker
         self.response_assembler = response_assembler
     
@@ -33,7 +36,7 @@ class RequestProcessor:
             The assembled response or None if no data is found
         """
         # Get endpoint configuration for this domain/operation
-        config = self.endpoint_config.get_endpoint_config(domain, operation)
+        config = self.config_manager.get_endpoint_config(domain, operation)
         if not config:
             return None
         
@@ -42,7 +45,7 @@ class RequestProcessor:
         
         try:
             # Orchestrate data retrieval/manipulation across sources
-            data_result = await self.data_orchestrator.orchestrate(
+            data_result = await self.orchestrator.orchestrate(
                 execution_id, 
                 config,
                 request_data
@@ -50,9 +53,9 @@ class RequestProcessor:
             
             # Assemble the final response
             response = self.response_assembler.assemble_response(
-                execution_id,
                 config,
-                data_result
+                data_result,
+                execution_id
             )
             
             # Mark execution as complete
@@ -64,3 +67,18 @@ class RequestProcessor:
             # Mark execution as failed
             self.execution_tracker.complete_execution(execution_id, success=False, error=str(e))
             raise
+            
+    def process_request(self, endpoint_config: Dict[str, Any], parameters: Dict[str, Any], execution_id: str) -> Dict[str, Any]:
+        """Process and validate request parameters for an endpoint.
+        
+        Args:
+            endpoint_config: The endpoint configuration
+            parameters: The request parameters
+            execution_id: The unique execution ID
+            
+        Returns:
+            The processed request data
+        """
+        # For now, just return the parameters as-is
+        # Future: add parameter validation, type conversion, etc.
+        return parameters

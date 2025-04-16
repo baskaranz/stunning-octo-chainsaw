@@ -8,18 +8,19 @@ from app.orchestration.data_orchestrator import DataOrchestrator
 from app.orchestration.execution_tracker import ExecutionTracker
 from app.orchestration.response_assembler import ResponseAssembler
 from app.config.endpoint_config_manager import EndpointConfigManager
+from app.orchestration.orchestration_interfaces import Orchestrator
 
 @pytest.mark.asyncio
 async def test_process_basic_request():
     """Test processing a basic request through the orchestration pipeline."""
     # Mock dependencies
-    endpoint_config = MagicMock(spec=EndpointConfigManager)
-    data_orchestrator = AsyncMock(spec=DataOrchestrator)
+    config_manager = MagicMock(spec=EndpointConfigManager)
+    orchestrator = AsyncMock(spec=Orchestrator)
     execution_tracker = MagicMock(spec=ExecutionTracker)
     response_assembler = MagicMock(spec=ResponseAssembler)
     
     # Set up mock behaviors
-    endpoint_config.get_endpoint_config.return_value = {
+    config_manager.get_endpoint_config.return_value = {
         "data_sources": [
             {
                 "name": "customer_data",
@@ -39,11 +40,11 @@ async def test_process_basic_request():
         "customer_id": "cust_123",
         "name": "John Doe",
         "email": "john.doe@example.com",
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow()
+        "created_at": datetime.now(),
+        "updated_at": datetime.now()
     }
     
-    data_orchestrator.orchestrate.return_value = {
+    orchestrator.orchestrate.return_value = {
         "customer_data": customer_data
     }
     
@@ -51,8 +52,8 @@ async def test_process_basic_request():
     
     # Create the request processor
     processor = RequestProcessor(
-        endpoint_config=endpoint_config,
-        data_orchestrator=data_orchestrator,
+        config_manager=config_manager,
+        orchestrator=orchestrator,
         execution_tracker=execution_tracker,
         response_assembler=response_assembler
     )
@@ -65,17 +66,17 @@ async def test_process_basic_request():
     assert result == customer_data
     
     # Verify the interactions with dependencies
-    endpoint_config.get_endpoint_config.assert_called_once_with("customers", "get")
+    config_manager.get_endpoint_config.assert_called_once_with("customers", "get")
     execution_tracker.start_execution.assert_called_once_with("customers", "get", request_data)
-    data_orchestrator.orchestrate.assert_called_once_with(
+    orchestrator.orchestrate.assert_called_once_with(
         "exec_123",
-        endpoint_config.get_endpoint_config.return_value,
+        config_manager.get_endpoint_config.return_value,
         request_data
     )
     response_assembler.assemble_response.assert_called_once_with(
-        "exec_123",
-        endpoint_config.get_endpoint_config.return_value,
-        data_orchestrator.orchestrate.return_value
+        config_manager.get_endpoint_config.return_value,
+        orchestrator.orchestrate.return_value,
+        "exec_123"
     )
     execution_tracker.complete_execution.assert_called_once_with("exec_123", success=True)
 
@@ -83,13 +84,13 @@ async def test_process_basic_request():
 async def test_process_multiple_sources():
     """Test processing a request that combines data from multiple sources."""
     # Mock dependencies
-    endpoint_config = MagicMock(spec=EndpointConfigManager)
-    data_orchestrator = AsyncMock(spec=DataOrchestrator)
+    config_manager = MagicMock(spec=EndpointConfigManager)
+    orchestrator = AsyncMock(spec=Orchestrator)
     execution_tracker = MagicMock(spec=ExecutionTracker)
     response_assembler = MagicMock(spec=ResponseAssembler)
     
     # Set up mock behaviors
-    endpoint_config.get_endpoint_config.return_value = {
+    config_manager.get_endpoint_config.return_value = {
         "data_sources": [
             {
                 "name": "customer_data",
@@ -135,7 +136,7 @@ async def test_process_multiple_sources():
         "customer_features": customer_features
     }
     
-    data_orchestrator.orchestrate.return_value = orchestration_result
+    orchestrator.orchestrate.return_value = orchestration_result
     
     expected_response = {
         "customer_id": "cust_123",
@@ -149,8 +150,8 @@ async def test_process_multiple_sources():
     
     # Create the request processor
     processor = RequestProcessor(
-        endpoint_config=endpoint_config,
-        data_orchestrator=data_orchestrator,
+        config_manager=config_manager,
+        orchestrator=orchestrator,
         execution_tracker=execution_tracker,
         response_assembler=response_assembler
     )
@@ -163,16 +164,16 @@ async def test_process_multiple_sources():
     assert result == expected_response
     
     # Verify the interactions with dependencies
-    endpoint_config.get_endpoint_config.assert_called_once_with("customers", "get_enriched")
+    config_manager.get_endpoint_config.assert_called_once_with("customers", "get_enriched")
     execution_tracker.start_execution.assert_called_once_with("customers", "get_enriched", request_data)
-    data_orchestrator.orchestrate.assert_called_once_with(
+    orchestrator.orchestrate.assert_called_once_with(
         "exec_456",
-        endpoint_config.get_endpoint_config.return_value,
+        config_manager.get_endpoint_config.return_value,
         request_data
     )
     response_assembler.assemble_response.assert_called_once_with(
-        "exec_456",
-        endpoint_config.get_endpoint_config.return_value,
-        orchestration_result
+        config_manager.get_endpoint_config.return_value,
+        orchestration_result,
+        "exec_456"
     )
     execution_tracker.complete_execution.assert_called_once_with("exec_456", success=True)

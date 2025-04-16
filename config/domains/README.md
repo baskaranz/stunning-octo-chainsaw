@@ -19,38 +19,22 @@ domains/
 
 ## Available Domains
 
-The following domains are currently configured:
+This directory is intended for your actual production domain configurations. For example configurations and demonstrations, please refer to the [example/config/domains](../../example/config/domains/) directory.
 
-### Iris Example
+The following sample domain is available in the example directory:
 
-- **Domain ID**: `iris_example`
-- **Description**: Iris flower classification example using sklearn model
-- **Endpoints**:
-  - `/orchestrator/iris_example/predict/{flower_id}` - Predict species using HTTP model
-  - `/orchestrator/iris_example/predict_local/{flower_id}` - Predict using locally loaded model
-  - `/orchestrator/iris_example/compare/{flower_id}` - Compare predictions from both models
-  - `/orchestrator/iris_example/samples` - Get random iris samples
-  - `/orchestrator/iris_example/species` - Get all iris species
+### Sample Domain
 
-### Model Scoring Examples
+- **Domain ID**: `sample_domain`
+- **Description**: A sample domain configuration template to use as a starting point
 
-- **Domain IDs**: 
-  - `model_scoring_credit_risk`
-  - `model_scoring_product_recommender`
-  - `model_scoring_loan_pred`
-  - `model_scoring_churn_pred`
-- **Description**: Example model scoring domains for different use cases
-- **Endpoints**: Various model scoring endpoints, see individual domain files for details
+### Example Domains (in example directory)
 
-### Model Loading Examples
+For complete working examples, see the [example/config/domains](../../example/config/domains/) directory, which includes:
 
-- **Domain ID**: `model_loading_examples`
-- **Description**: Demonstrates various model loading strategies
-- **Features**:
-  - HTTP API models (traditional approach)
-  - Local artifact models (load models from filesystem)
-  - Docker models (run models in Docker containers)
-  - ECR models (pull and run models from Amazon ECR)
+- Iris flower classification example with database, Feast, and ML integration
+- Various model scoring examples for different use cases
+- Model loading examples demonstrating different deployment strategies
 
 ## Adding a New Domain
 
@@ -66,3 +50,5 @@ To add a new domain:
 4. Restart the orchestrator service or use the reload endpoint
 
 The orchestrator will automatically discover and load all domain configurations from this directory.
+
+> **Note**: Keep example configurations in the example directory to maintain a clean separation between actual system configurations and demonstration examples.
