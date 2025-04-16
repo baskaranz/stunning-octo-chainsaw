@@ -1,0 +1,36 @@
+# API integration configuration
+api:
+  sources:
+    # This is a mock weather API configuration
+    weather_api:
+      base_url: "http://api.example.com"
+      timeout: 5000
+      retry_count: 3
+      
+      # Operations available for this API source
+      operations:
+        get_current_weather:
+          path: "/weather/current"
+          method: "get"
+          headers:
+            Content-Type: "application/json"
+            Accept: "application/json"
+          params:
+            city: "{city}"
+            units: "metric"
+          
+          # Mock response for demonstration (would normally be real API response)
+          mock: true
+          mock_response:
+            main:
+              temp: 22.5
+              humidity: 65
+              pressure: 1012
+            weather:
+              - id: 800
+                main: "Clear"
+                description: "clear sky"
+                icon: "01d"
+            wind:
+              speed: 5.1
+              deg: 230

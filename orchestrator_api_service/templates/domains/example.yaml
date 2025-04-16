@@ -1,0 +1,29 @@
+# Example domain configuration
+domain_id: "example"
+description: "Example domain with a simple endpoint"
+
+# Define endpoints for this domain
+endpoints:
+  hello:
+    description: "A simple hello world endpoint"
+    endpoint_type: "direct"
+    method: "get"
+    response_type: "json"
+    
+    # Direct response with no data sources
+    response:
+      message: "Hello, World!"
+      timestamp: "$system.timestamp"
+      
+  echo:
+    description: "Echo the input parameters"
+    endpoint_type: "direct"
+    method: "post"
+    response_type: "json"
+    
+    # Direct response that uses request parameters
+    response:
+      message: "Echo response"
+      input: "$request.body"
+      query_params: "$request.query_params"
+      path_params: "$request.path_params"

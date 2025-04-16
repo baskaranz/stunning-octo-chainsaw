@@ -1,0 +1,9 @@
+# Database configuration - Using in-memory SQLite database for demo
+database:
+  sources:
+    default:
+      type: "sqlite"
+      connection_string: "sqlite:///:memory:"
+      pool_size: 5
+      max_overflow: 10
+      pool_timeout: 30

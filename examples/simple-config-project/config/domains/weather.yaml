@@ -1,0 +1,26 @@
+# Weather API domain configuration
+domain_id: "weather"
+description: "Weather information API endpoints"
+
+# Define endpoints for this domain
+endpoints:
+  current:
+    description: "Get current weather for a city"
+    endpoint_type: "composite"
+    method: "get"
+    
+    data_sources:
+      - name: weather_data
+        type: api
+        source_id: weather_api
+        operation: get_current_weather
+        params:
+          city: "$request.path_params.city"
+    
+    response_mapping:
+      city: "$request.path_params.city"
+      temperature: "$weather_data.main.temp"
+      description: "$weather_data.weather[0].description"
+      humidity: "$weather_data.main.humidity"
+      wind_speed: "$weather_data.wind.speed"
+      timestamp: "$system.timestamp"

@@ -1,0 +1,31 @@
+# Simple hello world domain configuration
+domain_id: "hello"
+description: "Simple hello world endpoints"
+
+# Define endpoints for this domain
+endpoints:
+  greet:
+    description: "A simple greeting endpoint"
+    endpoint_type: "direct"
+    method: "get"
+    response_type: "json"
+    
+    # Direct response with no data sources
+    response:
+      message: "Hello, $request.path_params.name!"
+      timestamp: "$system.timestamp"
+      version: "1.0"
+      
+  echo:
+    description: "Echo back the request data"
+    endpoint_type: "direct"
+    method: "post"
+    response_type: "json"
+    
+    # Direct response that echoes the request
+    response:
+      message: "Echo response"
+      query_params: "$request.query_params"
+      path_params: "$request.path_params"
+      body: "$request.body"
+      timestamp: "$system.timestamp"

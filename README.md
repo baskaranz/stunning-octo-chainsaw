@@ -11,6 +11,10 @@ The Orchestrator API Service serves as a middleware layer that:
 3. Combines and transforms data from various sources
 4. Simplifies client integration with complex backend systems
 
+You can use this service in two ways:
+- As a library in your Python projects (recommended)
+- As a standalone service
+
 ## Features
 
 - **Declarative Configuration**: Define APIs and data flows through YAML configuration
@@ -38,14 +42,25 @@ The service is built around these core components:
 - **Data Source Adapters**: Connect to various backend systems
 - **Configuration Engine**: Loads and manages configuration files
 
-## Getting Started
+## Installation
 
-### Prerequisites
+### As a Library (Recommended)
 
-- Python 3.8+
-- Virtual environment (recommended)
+Install from PyPI:
 
-### Installation
+```bash
+pip install orchestrator-api-service
+```
+
+Or install from source:
+
+```bash
+git clone <repository-url>
+cd orchestrator-api-service
+pip install -e .
+```
+
+### As a Standalone Service
 
 1. Clone the repository:
    ```bash
@@ -60,7 +75,7 @@ The service is built around these core components:
    source .venv/bin/activate  # On Windows, use: .venv\Scripts\activate
    ```
 
-3. Install all dependencies (including development dependencies):
+3. Install all dependencies:
    ```bash
    # Option 1: Install all dependencies including development tools
    pip install -r requirements.txt
@@ -69,22 +84,48 @@ The service is built around these core components:
    pip install -e .
    
    # Option 3: Install with specific extras
-   # pip install -e ".[dev]"  # If extras are defined in setup.py
+   pip install -e ".[dev]"  # For development tools
    ```
 
-4. Verify installation:
+## Quick Start
+
+### Using as a Library
+
+1. **Initialize a new project**:
+
    ```bash
-   # Check that all dependencies are installed correctly
-   python -c "import fastapi, sqlalchemy, sklearn, flask, numpy, pandas; print('All core dependencies available')"
+   orchestrator-api init my-orchestrator-project
+   cd my-orchestrator-project
    ```
 
-### Running the Service
+2. **Add your domain configurations**:
 
-```bash
-python main.py
-```
+   Edit or create YAML files in the `config/domains/` directory.
 
-The service will start on http://localhost:8000 by default.
+3. **Run the service**:
+
+   ```bash
+   orchestrator-api run --config-path ./config
+   ```
+
+4. **Access the API**:
+
+   Open http://localhost:8000/docs in your browser to see the API documentation.
+
+### Using as a Standalone Service
+
+1. **Run the service**:
+
+   ```bash
+   python main.py
+   ```
+
+2. **Run the example**:
+
+   ```bash
+   # Run the iris example
+   python example/run_iris_example.py
+   ```
 
 ## Configuration
 
@@ -95,174 +136,108 @@ The service uses a configuration-driven approach with files located in the `conf
 - `domains/`: Domain-specific endpoint configurations (one file per domain)
 - `integrations/`: External system configurations
 
-**For Example Configurations:** See the [example/config](example/config/) directory for complete sample configurations that demonstrate different data source patterns.
+### Endpoint Configuration Example
 
-### Endpoint Configuration
+```yaml
+# config/domains/model_scoring.yaml
+domain_id: "model_scoring"
+description: "Credit risk scoring model"
 
-The Orchestrator API Service supports configuring different types of endpoints through YAML configuration files. You can define endpoints that:
+endpoints:
+  predict:
+    description: "Predict credit risk using customer data"
+    endpoint_type: "composite"
+    data_sources:
+      - name: customer_data
+        type: database
+        operation: get_customer
+        params:
+          customer_id: "$request.path_params.entity_id"
+      
+      - name: risk_prediction
+        type: ml
+        source_id: credit_model
+        operation: predict
+        params:
+          features:
+            credit_score: "$customer_data.credit_score"
+            income: "$customer_data.annual_income"
+    
+    response_mapping:
+      customer_id: "$customer_data.customer_id"
+      risk_score: "$risk_prediction.score"
+      risk_tier: "$risk_prediction.risk_tier"
+```
 
-1. **Database to ML Model**: Retrieve features from database tables and score with ML models
-   ```yaml
-   endpoints:
-     predict:
-       description: "Predict credit risk using customer data"
-       endpoint_type: "composite"
-       data_sources:
-         - name: customer_data
-           type: database
-           operation: get_customer
-           params:
-             customer_id: "$request.path_params.entity_id"
-         
-         - name: risk_prediction
-           type: ml
-           source_id: credit_model
-           operation: predict
-           params:
-             features:
-               credit_score: "$customer_data.credit_score"
-               income: "$customer_data.annual_income"
-       
-       response_mapping:
-         customer_id: "$customer_data.customer_id"
-         risk_score: "$risk_prediction.score"
-         risk_tier: "$risk_prediction.risk_tier"
-   ```
+## Creating a Project with Only Configurations
 
-2. **External API to ML Model**: Call external APIs for data and pass to ML models
-   ```yaml
-   endpoints:
-     predict:
-       description: "Predict churn using external API data"
-       endpoint_type: "composite"
-       data_sources:
-         - name: customer_profile
-           type: api
-           source_id: customer_api
-           operation: get_customer_profile
-           params:
-             customer_id: "$request.path_params.entity_id"
-         
-         - name: churn_prediction
-           type: ml
-           source_id: churn_model
-           operation: predict
-           params:
-             features:
-               tenure: "$customer_profile.tenure"
-               monthly_charges: "$customer_profile.monthly_charges"
-       
-       response_mapping:
-         customer_id: "$customer_profile.id"
-         churn_probability: "$churn_prediction.probability"
-         risk_level: "$churn_prediction.risk_level"
-   ```
+The Orchestrator API Service is designed to be used as a library, where your project only needs to provide configurations without any code. This approach is ideal for data scientists and ML engineers who want to quickly expose models via an API.
 
-3. **Feature Store to ML Model**: Fetch features from Feast and use for model predictions
-   ```yaml
-   endpoints:
-     predict:
-       description: "Generate recommendations using Feast features"
-       endpoint_type: "composite"
-       data_sources:
-         - name: customer_features
-           type: feast
-           source_id: default
-           operation: get_customer_features
-           params:
-             entity_id: "$request.path_params.entity_id"
-             feature_refs:
-               - "customer:purchase_history"
-               - "customer:category_affinity"
-         
-         - name: recommendations
-           type: ml
-           source_id: recommender_model
-           operation: predict
-           params:
-             features:
-               purchase_history: "$customer_features.purchase_history"
-               category_affinity: "$customer_features.category_affinity"
-       
-       response_mapping:
-         customer_id: "$request.path_params.entity_id"
-         recommendations: "$recommendations.recommended_products"
-         relevance_scores: "$recommendations.relevance_scores"
-   ```
+### Library-only Project Structure
 
-4. **Multi-Source ML Model**: Combine data from multiple sources for complex model scoring
-   ```yaml
-   endpoints:
-     predict:
-       description: "Generate loan approval prediction from multiple sources"
-       endpoint_type: "composite"
-       data_sources:
-         # Get customer profile from database
-         - name: applicant
-           type: database
-           operation: get_applicant
-           params:
-             applicant_id: "$request.path_params.entity_id"
-         
-         # Get feature data from feature store
-         - name: behavior_features
-           type: feast
-           source_id: default
-           operation: get_features
-           params:
-             entity_id: "$request.path_params.entity_id"
-         
-         # Get external credit score from API
-         - name: credit_data
-           type: api
-           source_id: credit_api
-           operation: get_credit_score
-           params:
-             applicant_id: "$request.path_params.entity_id"
-         
-         # Score the loan with ML model
-         - name: loan_prediction
-           type: ml
-           source_id: loan_model
-           operation: predict
-           params:
-             features:
-               age: "$applicant.age"
-               income: "$applicant.annual_income"
-               payment_history: "$behavior_features.payment_history"
-               credit_score: "$credit_data.score"
-       
-       response_mapping:
-         applicant_id: "$applicant.applicant_id"
-         approval_probability: "$loan_prediction.probability"
-         decision: "$loan_prediction.decision"
-         suggested_interest_rate: "$loan_prediction.interest_rate"
-   ```
+```
+my-orchestrator-project/
+├── config/
+│   ├── config.yaml            # Global application settings
+│   ├── database.yaml          # Database connection settings
+│   ├── domains/
+│   │   ├── model_a.yaml       # Domain configuration for Model A
+│   │   ├── model_b.yaml       # Domain configuration for Model B
+│   │   └── ...
+│   └── integrations/
+│       ├── api_sources.yaml   # External API configurations
+│       ├── feast_config.yaml  # Feast feature store configuration
+│       └── ml_config.yaml     # ML model configurations
+├── requirements.txt           # Only needs orchestrator-api-service
+└── README.md
+```
 
-For more detailed configuration examples, see the [Example Config README](example/config/README.md).
+### Minimal requirements.txt
+
+```
+orchestrator-api-service>=0.1.0
+```
+
+### Running the Project
+
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Run the service
+orchestrator-api run --config-path ./config
+```
+
+## Command Line Interface
+
+The library provides a command-line interface (CLI) for working with Orchestrator API projects:
+
+```bash
+# Show help
+orchestrator-api --help
+
+# Initialize a new project
+orchestrator-api init my-project
+
+# Run the service
+orchestrator-api run --config-path ./config
+
+# Run with auto-reload for development
+orchestrator-api run --reload --config-path ./config
+
+# Show version
+orchestrator-api version
+```
 
 ## Examples
 
-The repository includes examples that demonstrate:
+For detailed examples of how to use the service, see the `example/` directory:
 
-1. **Model Scoring**: Shows integration with ML services using data from databases:
-   - Credit risk scoring model
-   - Product recommendation model
-   - Loan prediction model
+- **Basic Example**: Simple endpoints with direct responses
+- **Iris Example**: Classification model with multiple data sources
+- **Model Scoring**: Complex scoring models with various input sources
 
-2. **Multi-Source Data Flow**: Demonstrates retrieving and combining data from:
-   - Database tables (for features)
-   - Request parameters
-   - External APIs
-   - Feature stores
-
-3. **Model Loading Strategies**: Shows different ways to load and run ML models:
-   - HTTP API models (calling external services)
-   - Local artifact models (loading from filesystem)
-   - Docker container models (running in Docker)
-   - ECR repository models (pulling from AWS ECR)
-
-For more details, see the [Example README](example/README.md) and [Model Loading Documentation](docs/model_loading.md).
+See the [Example README](example/README.md) for more details.
 
 ## API Documentation
 

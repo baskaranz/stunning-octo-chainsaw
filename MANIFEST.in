@@ -1,0 +1,5 @@
+include README.md
+include LICENSE
+include CLAUDE.md
+include orchestrator_api_service/py.typed
+recursive-include orchestrator_api_service/templates *.yaml *.yml *.json
